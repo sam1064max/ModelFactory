@@ -24,10 +24,7 @@ def classification_data():
     """Generate synthetic classification data."""
     np.random.seed(42)
     n = 500
-    X = pd.DataFrame({
-        f"feature_{i}": np.random.randn(n)
-        for i in range(20)
-    })
+    X = pd.DataFrame({f"feature_{i}": np.random.randn(n) for i in range(20)})
     y = pd.Series((X["feature_0"] + X["feature_1"] > 0).astype(int))
     return X, y
 
@@ -37,10 +34,7 @@ def regression_data():
     """Generate synthetic regression data."""
     np.random.seed(42)
     n = 500
-    X = pd.DataFrame({
-        f"feature_{i}": np.random.randn(n)
-        for i in range(20)
-    })
+    X = pd.DataFrame({f"feature_{i}": np.random.randn(n) for i in range(20)})
     y = pd.Series(3 * X["feature_0"] + 2 * X["feature_1"] + np.random.randn(n))
     return X, y
 
@@ -145,8 +139,11 @@ class TestModelTraining:
 
         with mlflow.start_run() as run:
             model = xgb.XGBClassifier(
-                max_depth=3, n_estimators=50,
-                use_label_encoder=False, eval_metric="logloss", verbosity=0,
+                max_depth=3,
+                n_estimators=50,
+                use_label_encoder=False,
+                eval_metric="logloss",
+                verbosity=0,
             )
             model.fit(X, y)
 
@@ -168,8 +165,11 @@ class TestModelTraining:
 
         X, y = classification_data
         model = xgb.XGBClassifier(
-            max_depth=3, n_estimators=50,
-            use_label_encoder=False, eval_metric="logloss", verbosity=0,
+            max_depth=3,
+            n_estimators=50,
+            use_label_encoder=False,
+            eval_metric="logloss",
+            verbosity=0,
         )
 
         scores = cross_val_score(model, X, y, cv=3, scoring="roc_auc")
@@ -186,10 +186,7 @@ class TestChampionChallenger:
         metrics = {"roc_auc": 0.85, "f1": 0.80}
         threshold = {"roc_auc_min": 0.65}
 
-        meets = all(
-            metrics.get(k.replace("_min", ""), 0) >= v
-            for k, v in threshold.items()
-        )
+        meets = all(metrics.get(k.replace("_min", ""), 0) >= v for k, v in threshold.items())
         assert meets is True
 
     def test_model_below_threshold(self):
@@ -197,10 +194,7 @@ class TestChampionChallenger:
         metrics = {"roc_auc": 0.55, "f1": 0.50}
         threshold = {"roc_auc_min": 0.65}
 
-        meets = all(
-            metrics.get(k.replace("_min", ""), 0) >= v
-            for k, v in threshold.items()
-        )
+        meets = all(metrics.get(k.replace("_min", ""), 0) >= v for k, v in threshold.items())
         assert meets is False
 
 
