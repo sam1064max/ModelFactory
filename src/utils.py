@@ -21,6 +21,7 @@ from rich.logging import RichHandler
 # ── Rich Console ─────────────────────────────────────────────────────────────
 console = Console()
 
+
 # ── Logging Setup ────────────────────────────────────────────────────────────
 def setup_logger(name: str, level: str = "INFO") -> logging.Logger:
     """Create a structured logger with Rich formatting."""
@@ -42,28 +43,25 @@ logger = setup_logger("mlops_pipeline")
 
 
 # ── Configuration Loading ────────────────────────────────────────────────────
-def load_config(config_path: str = "config/pipeline_config.yaml") -> dict:
+def load_config(config_path: str = "config/pipeline_config.yaml") -> dict[str, Any]:
     """Load pipeline configuration from YAML file."""
     path = _resolve_path(config_path)
     with open(path, "r") as f:
         config = yaml.safe_load(f)
     logger.info(f"Loaded config from [bold cyan]{path}[/]")
-    return config
+    return config  # type: ignore[no-any-return]
 
 
 def load_model_registry(
     registry_path: str = "config/model_registry.yaml",
-) -> dict:
+) -> dict[str, Any]:
     """Load model registry configuration from YAML file."""
     path = _resolve_path(registry_path)
     with open(path, "r") as f:
         registry = yaml.safe_load(f)
     num_models = len(registry.get("models", []))
-    logger.info(
-        f"Loaded model registry from [bold cyan]{path}[/] "
-        f"({num_models} models)"
-    )
-    return registry
+    logger.info(f"Loaded model registry from [bold cyan]{path}[/] ({num_models} models)")
+    return registry  # type: ignore[no-any-return]
 
 
 def _resolve_path(relative_path: str) -> Path:
@@ -104,9 +102,7 @@ def timer(task_name: str):
             time_str = f"{elapsed / 60:.1f}m"
         else:
             time_str = f"{elapsed / 3600:.1f}h"
-        logger.info(
-            f"[bold green]✓ Completed:[/] {task_name} in {time_str}"
-        )
+        logger.info(f"[bold green]✓ Completed:[/] {task_name} in {time_str}")
 
 
 # ── Data Hashing ─────────────────────────────────────────────────────────────

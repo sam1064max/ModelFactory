@@ -76,15 +76,10 @@ class FeatureEngineeringPipeline:
     def transform(self, df: pd.DataFrame) -> pd.DataFrame:
         """Transform new data using fitted transformers (inference)."""
         if not self.fitted:
-            raise RuntimeError(
-                "Pipeline not fitted. Call fit_transform() first."
-            )
+            raise RuntimeError("Pipeline not fitted. Call fit_transform() first.")
         with timer("Feature Engineering — Transform (Inference)"):
             result = self._apply_transforms(df, fit=False)
-            logger.info(
-                f"Inference transform: "
-                f"{df.shape[1]} raw → {result.shape[1]} features"
-            )
+            logger.info(f"Inference transform: {df.shape[1]} raw → {result.shape[1]} features")
             return result
 
     def select_features(
@@ -138,15 +133,12 @@ class FeatureEngineeringPipeline:
             mask = selector.get_support()
             selected_cols = df.columns[mask].tolist()
         except Exception as e:
-            logger.warning(
-                f"Feature selection failed ({e}), falling back to variance selection"
-            )
+            logger.warning(f"Feature selection failed ({e}), falling back to variance selection")
             variances = df.var().sort_values(ascending=False)
             selected_cols = variances.head(max_features).index.tolist()
 
         logger.info(
-            f"Feature selection ({category}): "
-            f"{df.shape[1]} → {len(selected_cols)} features"
+            f"Feature selection ({category}): {df.shape[1]} → {len(selected_cols)} features"
         )
         return df[selected_cols], selected_cols
 
@@ -155,18 +147,18 @@ class FeatureEngineeringPipeline:
     def _identify_columns(self, df: pd.DataFrame) -> None:
         """Categorize columns by type."""
         self.numeric_columns = [
-            c for c in df.columns
+            c
+            for c in df.columns
             if c.startswith("num_") or c.startswith("text_len") or c.startswith("text_words")
         ]
-        self.categorical_columns = [
-            c for c in df.columns if c.startswith("cat_")
-        ]
-        self.temporal_columns = [
-            c for c in df.columns if c.startswith("date_")
-        ]
+        self.categorical_columns = [c for c in df.columns if c.startswith("cat_")]
+        self.temporal_columns = [c for c in df.columns if c.startswith("date_")]
         self.text_columns = [
-            c for c in df.columns
-            if c.startswith("text_") and not c.startswith("text_len") and not c.startswith("text_words")
+            c
+            for c in df.columns
+            if c.startswith("text_")
+            and not c.startswith("text_len")
+            and not c.startswith("text_words")
         ]
 
         logger.info(
@@ -176,9 +168,7 @@ class FeatureEngineeringPipeline:
             f"{len(self.text_columns)} text"
         )
 
-    def _apply_transforms(
-        self, df: pd.DataFrame, fit: bool
-    ) -> pd.DataFrame:
+    def _apply_transforms(self, df: pd.DataFrame, fit: bool) -> pd.DataFrame:
         """Apply all feature transformations."""
         features = {}
 
@@ -204,9 +194,7 @@ class FeatureEngineeringPipeline:
         feature_cols = [c for c in result.columns if c != "record_id"]
         return result[feature_cols]
 
-    def _transform_numeric(
-        self, df: pd.DataFrame, fit: bool
-    ) -> dict[str, np.ndarray]:
+    def _transform_numeric(self, df: pd.DataFrame, fit: bool) -> dict[str, np.ndarray]:
         """Apply numeric transformations: scaling, binning, interactions."""
         features = {}
 
@@ -230,9 +218,7 @@ class FeatureEngineeringPipeline:
                 self.scalers[col] = scaler
             else:
                 if col in self.scalers:
-                    scaled = self.scalers[col].transform(
-                        values_filled.reshape(-1, 1)
-                    ).ravel()
+                    scaled = self.scalers[col].transform(values_filled.reshape(-1, 1)).ravel()
                 else:
                     scaled = values_filled
             features[f"{col}_scaled"] = scaled
@@ -241,17 +227,15 @@ class FeatureEngineeringPipeline:
             features[f"{col}_log1p"] = np.log1p(np.abs(values_filled))
 
             # Squared term
-            features[f"{col}_squared"] = values_filled ** 2
+            features[f"{col}_squared"] = values_filled**2
 
         # Pairwise interactions (top K numeric features by variance)
-        top_k = self.config["features"]["transforms"]["numeric"].get(
-            "interaction_top_k", 10
-        )
+        top_k = self.config["features"]["transforms"]["numeric"].get("interaction_top_k", 10)
         top_numeric = sorted(
             self.numeric_columns[:top_k],
             key=lambda c: np.nanvar(df[c]) if c in df.columns else 0,
             reverse=True,
-        )[:min(top_k, 5)]  # Limit for demo
+        )[: min(top_k, 5)]  # Limit for demo
 
         for i in range(len(top_numeric)):
             for j in range(i + 1, len(top_numeric)):
@@ -264,9 +248,7 @@ class FeatureEngineeringPipeline:
 
         return features
 
-    def _transform_categorical(
-        self, df: pd.DataFrame, fit: bool
-    ) -> dict[str, np.ndarray]:
+    def _transform_categorical(self, df: pd.DataFrame, fit: bool) -> dict[str, np.ndarray]:
         """Apply categorical transformations: label encoding + frequency encoding."""
         features = {}
 
@@ -288,9 +270,7 @@ class FeatureEngineeringPipeline:
                 encoder = self.encoders[col]
                 # Map unseen categories to __unknown__
                 known = set(encoder.classes_)
-                values_safe = values.map(
-                    lambda x: x if x in known else "__unknown__"
-                )
+                values_safe = values.map(lambda x: x if x in known else "__unknown__")
                 features[f"{col}_encoded"] = encoder.transform(values_safe)
             else:
                 features[f"{col}_encoded"] = pd.Categorical(values).codes
@@ -301,9 +281,7 @@ class FeatureEngineeringPipeline:
 
         return features
 
-    def _transform_temporal(
-        self, df: pd.DataFrame
-    ) -> dict[str, np.ndarray]:
+    def _transform_temporal(self, df: pd.DataFrame) -> dict[str, np.ndarray]:
         """Extract temporal features from date columns."""
         features = {}
 

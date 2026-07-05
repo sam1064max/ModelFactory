@@ -158,9 +158,7 @@ class TestFeatureEngineeringPipeline:
         null_rates = result[non_null_cols].isnull().mean()
         assert (null_rates < 0.5).all(), f"High null rates: {null_rates[null_rates >= 0.5]}"
 
-    def test_feature_selection_reduces_dimensions(
-        self, sample_data, sample_config
-    ):
+    def test_feature_selection_reduces_dimensions(self, sample_data, sample_config):
         """Feature selection should reduce to max_features_per_model."""
         pipeline = FeatureEngineeringPipeline(sample_config)
         result = pipeline.fit_transform(sample_data)
@@ -190,9 +188,7 @@ class TestFeatureEngineeringPipeline:
 
         assert len(selected_features) == 5
 
-    def test_consistency_between_fit_and_transform(
-        self, sample_data, sample_config
-    ):
+    def test_consistency_between_fit_and_transform(self, sample_data, sample_config):
         """fit_transform and transform should produce same column structure."""
         pipeline = FeatureEngineeringPipeline(sample_config)
         fit_result = pipeline.fit_transform(sample_data)

@@ -22,6 +22,7 @@ from src.model_dag import ModelDependencyGraph, DAGCycleError
 
 # ── Fixtures ──────────────────────────────────────────────────────────────────
 
+
 @pytest.fixture
 def simple_chain_models():
     """A -> B -> C simple chain."""
@@ -73,6 +74,7 @@ def unknown_dep_models():
 
 
 # ── Tests ─────────────────────────────────────────────────────────────────────
+
 
 class TestModelDependencyGraph:
     """Test suite for ModelDependencyGraph."""

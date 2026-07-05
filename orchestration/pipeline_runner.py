@@ -78,8 +78,8 @@ def main():
 
         # ── Stage 2: Feature Engineering (No Ray — Spark in production) ──
         console.rule("[bold cyan]Stage 2: Feature Engineering[/]")
-        train_features, inference_features, feature_pipeline = (
-            run_feature_engineering(train_df, inference_df, config)
+        train_features, inference_features, feature_pipeline = run_feature_engineering(
+            train_df, inference_df, config
         )
 
         # ── Stage 3: Model Training (Ray Tune + Ray Train) ──────────────
@@ -144,9 +144,7 @@ def _print_summary(
     table.add_column("Value", style="green")
 
     # Training stats
-    successful = sum(
-        1 for r in training_results.values() if r.get("status") == "success"
-    )
+    successful = sum(1 for r in training_results.values() if r.get("status") == "success")
     failed = len(training_results) - successful
     table.add_row("Models Trained", f"{successful} successful, {failed} failed")
     table.add_row("Training Engine", "Ray Tune (ASHA scheduler)")
@@ -199,9 +197,7 @@ def _print_summary(
 
     for model_id, result in training_results.items():
         status = result.get("status", "unknown")
-        status_str = (
-            "[green]✅ Success[/]" if status == "success" else "[red]❌ Failed[/]"
-        )
+        status_str = "[green]✅ Success[/]" if status == "success" else "[red]❌ Failed[/]"
         model_type = result.get("model_type", "unknown")
         metrics = result.get("best_metrics", {})
 
