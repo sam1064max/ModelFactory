@@ -1,0 +1,85 @@
+[build-system]
+requires = ["setuptools>=68.0", "wheel"]
+build-backend = "setuptools.backends._legacy:_Backend"
+
+[project]
+name = "mlops-platform-ray"
+version = "2.0.0"
+description = "Scalable MLOps Platform with Ray Tune + Ray Actors — Databricks, Delta Lake, MLflow"
+readme = "README.md"
+license = {text = "MIT"}
+requires-python = ">=3.10"
+authors = [
+    {name = "Sushant Shambharkar", email = "sam1064max@gmail.com"},
+]
+keywords = ["mlops", "databricks", "mlflow", "ray", "ray-tune", "machine-learning"]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Scientific/Engineering :: Artificial Intelligence",
+]
+
+dependencies = [
+    "xgboost>=2.0.0",
+    "lightgbm>=4.1.0",
+    "scikit-learn>=1.3.0",
+    "pandas>=2.1.0",
+    "numpy>=1.24.0",
+    "pyarrow>=14.0.0",
+    "mlflow>=2.10.0",
+    "ray[tune]>=2.9.0",
+    "ray[train]>=2.9.0",
+    "pyyaml>=6.0",
+    "joblib>=1.3.0",
+    "tqdm>=4.66.0",
+    "rich>=13.7.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=7.4.0",
+    "pytest-cov>=4.1.0",
+    "mypy>=1.8.0",
+    "ruff>=0.3.0",
+]
+monitoring = [
+    "evidently>=0.4.0",
+]
+all = ["mlops-platform[dev,monitoring]"]
+
+[project.scripts]
+mlops-pipeline = "orchestration.pipeline_runner:main"
+
+[project.urls]
+Homepage = "https://github.com/sam1064max/mlops-platform-case-study"
+Repository = "https://github.com/sam1064max/mlops-platform-case-study"
+Issues = "https://github.com/sam1064max/mlops-platform-case-study/issues"
+
+[tool.setuptools.packages.find]
+include = ["src*", "orchestration*", "config*", "monitoring*"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-v --tb=short --strict-markers"
+markers = [
+    "slow: marks tests as slow (deselect with '-m \"not slow\"')",
+    "integration: marks integration tests",
+]
+
+[tool.ruff]
+target-version = "py310"
+line-length = 100
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "N", "W", "UP"]
+ignore = ["E501"]
+
+[tool.mypy]
+python_version = "3.10"
+warn_return_any = true
+warn_unused_configs = true
+ignore_missing_imports = true
