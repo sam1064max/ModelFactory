@@ -1,0 +1,33 @@
+# Core ML & Data
+xgboost>=2.0.0
+lightgbm>=4.1.0
+scikit-learn>=1.3.0
+pandas>=2.1.0
+numpy>=1.24.0
+pyarrow>=14.0.0
+
+# MLflow
+mlflow>=2.10.0
+
+# Ray (distributed training + inference)
+ray[tune]>=2.9.0
+ray[train]>=2.9.0
+
+# Monitoring
+evidently>=0.4.0
+
+# Configuration
+pyyaml>=6.0
+pydantic>=2.0.0
+
+# Utilities
+joblib>=1.3.0
+tqdm>=4.66.0
+rich>=13.7.0
+
+# Testing
+pytest>=7.4.0
+pytest-cov>=4.1.0
+
+# Type checking
+mypy>=1.8.0
