@@ -1,0 +1,168 @@
+# ──────────────────────────────────────────────────────────────────────────────
+# Pipeline Configuration — Ray-Integrated Version
+# Controls the end-to-end MLOps pipeline behavior for both local and Databricks
+# ──────────────────────────────────────────────────────────────────────────────
+
+pipeline:
+  name: "mlops-platform-ray"
+  version: "2.0.0"
+  environment: "local"  # local | staging | production
+
+# ── Ray Configuration ────────────────────────────────────────────────────────
+# Ray is used for distributed model training (Ray Tune) and batch inference
+# (Ray Actors). In production, Ray runs on Databricks via setup_ray_cluster().
+ray:
+  num_cpus: null                   # null = auto-detect all cores
+  num_gpus: 0                      # GPU count (0 for tree models)
+  object_store_memory: null        # null = auto (shared memory for data)
+  log_to_driver: false
+  # Production (Databricks):
+  # setup_ray_cluster:
+  #   num_worker_nodes: 20
+  #   num_cpus_per_node: 8
+  #   num_gpus_per_node: 0
+  #   collect_log_to_path: "/dbfs/ray_logs/"
+
+# ── Data Ingestion ───────────────────────────────────────────────────────────
+data:
+  # Synthetic data generation settings (local demo)
+  synthetic:
+    training_rows: 10000
+    inference_rows: 100000
+    num_numeric_features: 30
+    num_categorical_features: 10
+    num_temporal_features: 5
+    num_text_features: 5
+    random_seed: 42
+  
+  # Storage paths
+  paths:
+    raw_data: "data/bronze/"
+    cleaned_data: "data/silver/"
+    feature_data: "data/gold/"
+    inference_input: "data/inference/input/"
+    inference_output: "data/inference/output/"
+    monitoring_reports: "data/monitoring/"
+
+# ── Feature Engineering ──────────────────────────────────────────────────────
+# Feature engineering runs on Spark (PySpark in production, Pandas locally).
+# Ray is NOT used here — Spark excels at distributed DataFrame processing.
+features:
+  # Transformation settings
+  transforms:
+    numeric:
+      scaling: "standard"          # standard | minmax | robust
+      binning_quantiles: 10
+      polynomial_degree: 2
+      interaction_top_k: 20        # Top K features for interactions
+    categorical:
+      encoding: "target"           # target | onehot | woe
+      max_cardinality: 50          # Max categories before hashing
+      hash_buckets: 100
+    temporal:
+      lag_periods: [1, 7, 30]
+      rolling_windows: [7, 30, 90]
+      cyclical: true
+  
+  # Feature selection
+  selection:
+    method: "importance"           # importance | mutual_info | variance
+    max_features_per_model: 30     # Selected features per model
+    variance_threshold: 0.01
+    correlation_threshold: 0.95
+
+# ── Model Training (Ray Tune + Ray Train) ────────────────────────────────────
+# Training uses Ray Tune for distributed hyperparameter optimization with
+# ASHA scheduling, and Ray remote tasks for parallel model training.
+training:
+  # Ray-based parallelism (replaces Spark foreach)
+  max_parallel_models: 5
+  batch_size: 5                    # Models per batch (legacy, Ray handles scheduling)
+  
+  # Hyperparameter optimization — Ray Tune
+  hpo:
+    enabled: true
+    max_trials: 10                 # Trials per model (ASHA early-stops bad ones)
+    metric: "roc_auc"              # Primary optimization metric
+    direction: "maximize"
+    scheduler: "asha"              # asha | hyperband | pbt | random
+    # ASHA-specific settings
+    asha:
+      grace_period: 1              # Min epochs before early stopping
+      reduction_factor: 2          # Kill bottom 1/reduction_factor trials
+      max_t: 100                   # Max training iterations
+  
+  # Cross-validation
+  cv:
+    n_splits: 5
+    stratified: true
+  
+  # MLflow settings
+  mlflow:
+    experiment_name: "mlops-platform-ray-training"
+    tracking_uri: "mlruns"         # Local path or Databricks-managed
+    registry_uri: null             # null = same as tracking
+    auto_log: true
+  
+  # Champion/Challenger
+  champion_challenger:
+    enabled: true
+    primary_metric: "roc_auc"
+    min_threshold: 0.65            # Minimum acceptable metric value
+    improvement_threshold: 0.0     # Must be >= champion (no regression)
+
+# ── Batch Inference (Ray Actors) ─────────────────────────────────────────────
+# Inference uses Ray Actors for stateful model scoring. Each actor holds one
+# model in memory and scores all data chunks — no repeated deserialisation.
+inference:
+  chunk_size: 10000                # Records per inference chunk
+  max_parallel_models: 5           # Size of the Ray Actor pool
+  output_format: "parquet"         # parquet | csv | delta
+  include_probabilities: true
+  include_shap: false              # SHAP values (expensive)
+
+# ── Monitoring ───────────────────────────────────────────────────────────────
+# Monitoring runs on Spark (SQL queries over Delta Lake tables in production).
+# Ray is NOT used here — drift detection is a data analysis workload.
+monitoring:
+  drift_detection:
+    enabled: true
+    psi_threshold: 0.2             # Population Stability Index threshold
+    ks_threshold: 0.05             # KS test p-value threshold
+    reference_window: "training"   # training | last_inference
+  
+  data_quality:
+    null_threshold: 0.1            # Max null fraction per feature
+    cardinality_change_threshold: 0.2
+  
+  alerting:
+    enabled: false                 # Enable for Databricks deployment
+    slack_webhook: null
+    email_recipients: []
+
+# ── Databricks-Specific ─────────────────────────────────────────────────────
+databricks:
+  workspace_url: null              # Set for Databricks deployment
+  catalog: "ml_platform"
+  schema: "production"
+  
+  # Spark cluster (data engineering workloads)
+  spark_cluster:
+    node_type: "i3.2xlarge"
+    min_workers: 2
+    max_workers: 50
+    spot_enabled: true
+    spot_fallback: true
+    photon_enabled: true
+    runtime_version: "15.4.x-scala2.12"
+  
+  # Ray cluster (AI workloads — runs on same nodes as Spark)
+  ray_cluster:
+    num_worker_nodes: 20
+    num_cpus_per_node: 8
+    num_gpus_per_node: 0           # 0 for tree models, >0 for DL/LLM
+    collect_log_to_path: "/dbfs/ray_logs/"
+  
+  instance_pool:
+    idle_instances: 5
+    max_capacity: 100
