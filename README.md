@@ -1,5 +1,18 @@
 # MLOps Pipeline — Small-Scale Implementation
 
+<p align="center">
+  <img src="https://img.shields.io/badge/Python-3.10%20|%203.11%20|%203.12-3776AB?logo=python&logoColor=white" alt="Python">
+  <img src="https://img.shields.io/badge/License-MIT-yellow.svg" alt="License: MIT">
+  <img src="https://img.shields.io/github/actions/workflow/status/sam1064max/ModelFactory/ci.yml?branch=main&label=CI%2FCD&logo=github" alt="CI/CD">
+  <img src="https://img.shields.io/github/last-commit/sam1064max/ModelFactory" alt="Last Commit">
+  <img src="https://img.shields.io/github/v/release/sam1064max/ModelFactory" alt="Release">
+  <img src="https://img.shields.io/pypi/v/mlops-platform-ray?logo=pypi&logoColor=white" alt="PyPI">
+  <img src="https://img.shields.io/badge/Ray-2.9%2B-028CF0?logo=ray&logoColor=white" alt="Ray">
+  <img src="https://img.shields.io/badge/MLflow-2.10%2B-0194E2?logo=mlflow&logoColor=white" alt="MLflow">
+  <img src="https://img.shields.io/badge/Terraform-1.7%2B-7B42BC?logo=terraform&logoColor=white" alt="Terraform">
+  <img src="https://img.shields.io/badge/Streamlit-1.36%2B-FF4B4B?logo=streamlit&logoColor=white" alt="Streamlit">
+</p>
+
 A working demonstration of the MLOps platform architecture described in [`architecture_final.md`](architecture_final.md), using recommended tools and orchestration patterns. The full architecture document covers the production-scale design for **10,000 models**, **7.5 trillion daily predictions**, and **< 24-hour inference SLA** on Databricks Lakehouse with Spark + Ray.
 
 ## Overview
