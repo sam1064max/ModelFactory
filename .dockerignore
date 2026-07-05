@@ -1,0 +1,42 @@
+# ──────────────────────────────────────────────────────────────────────────────
+# .dockerignore — Exclude from Docker build context
+# ──────────────────────────────────────────────────────────────────────────────
+
+# Git
+.git
+.gitignore
+
+# Python artifacts
+__pycache__
+*.py[cod]
+*.egg-info
+dist
+build
+.eggs
+
+# IDE
+.idea
+.vscode
+*.swp
+
+# Data (generated at runtime, not baked into image)
+data/
+mlruns/
+mlartifacts/
+
+# Tests cache
+.pytest_cache
+htmlcov
+.coverage
+*.xml
+
+# Terraform (not needed in Docker)
+infrastructure/
+
+# Docs
+*.md
+!README.md
+
+# OS
+.DS_Store
+Thumbs.db
