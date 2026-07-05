@@ -1,0 +1,54 @@
+# Databricks Asset Bundle Configuration
+# Deploy with: databricks bundle deploy -t <target>
+# Docs: https://docs.databricks.com/dev-tools/bundles/
+
+bundle:
+  name: mlops-platform
+
+variables:
+  catalog:
+    description: "Unity Catalog name"
+    default: "ml_platform"
+  schema:
+    description: "Schema name"
+    default: "production"
+
+# Workspace settings per environment
+targets:
+  dev:
+    mode: development
+    default: true
+    workspace:
+      host: ${var.DATABRICKS_HOST_DEV}
+
+  staging:
+    workspace:
+      host: ${var.DATABRICKS_HOST_STAGING}
+    variables:
+      catalog: "ml_platform_staging"
+      schema: "staging"
+
+  prod:
+    mode: production
+    workspace:
+      host: ${var.DATABRICKS_HOST_PROD}
+    variables:
+      catalog: "ml_platform"
+      schema: "production"
+    run_as:
+      service_principal_name: "ml-platform-service-principal"
+
+# Included resources
+include:
+  - "../../orchestration/databricks_workflow.json"
+
+# Sync source code
+sync:
+  include:
+    - "notebooks/**"
+    - "../../src/**"
+    - "../../config/**"
+  exclude:
+    - "**/__pycache__"
+    - "**/.pytest_cache"
+    - "**/data/**"
