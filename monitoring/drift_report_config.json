@@ -1,0 +1,73 @@
+{
+  "drift_report": {
+    "type": "data_drift",
+    "reference_window": "training",
+    "max_features_in_report": 30,
+    "statistical_tests": {
+      "numerical": {
+        "primary": "ks",
+        "secondary": "psi"
+      },
+      "categorical": {
+        "primary": "chi2"
+      }
+    },
+    "thresholds": {
+      "psi": {
+        "no_drift": 0.1,
+        "moderate_drift": 0.2,
+        "significant_drift": 0.5
+      },
+      "ks_pvalue": {
+        "drift_threshold": 0.05
+      }
+    }
+  },
+  "quality_report": {
+    "type": "data_quality",
+    "checks": {
+      "null_rate_threshold": 0.1,
+      "cardinality_change_threshold": 0.2,
+      "range_violation_threshold": 0.01,
+      "constant_column_check": true,
+      "infinite_value_check": true
+    }
+  },
+  "alerting": {
+    "severity_mapping": {
+      "P1": {
+        "conditions": [
+          "drift_percentage > 50%",
+          "inference_job_failure",
+          "constant_predictions"
+        ],
+        "channels": ["pagerduty", "slack"],
+        "response_sla": "1 hour"
+      },
+      "P2": {
+        "conditions": [
+          "drift_percentage > 20%",
+          "auc_degradation > 5%"
+        ],
+        "channels": ["pagerduty", "slack"],
+        "response_sla": "next business day"
+      },
+      "P3": {
+        "conditions": [
+          "individual_feature_psi > 0.2",
+          "data_quality_degradation"
+        ],
+        "channels": ["slack"],
+        "response_sla": "weekly review"
+      },
+      "P4": {
+        "conditions": [
+          "job_completion",
+          "training_summary"
+        ],
+        "channels": ["email"],
+        "response_sla": "informational"
+      }
+    }
+  }
+}
