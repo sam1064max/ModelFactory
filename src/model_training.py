@@ -86,9 +86,7 @@ def train_all_models(
     mlflow.set_tracking_uri(mlflow_config["tracking_uri"])
     mlflow.set_experiment(mlflow_config["experiment_name"])
 
-    logger.info(
-        f"[bold]Starting Ray-powered training pipeline: {len(models)} models[/]"
-    )
+    logger.info(f"[bold]Starting Ray-powered training pipeline: {len(models)} models[/]")
 
     # Put shared data into Ray object store once (avoids repeated serialisation)
     train_features_ref = ray.put(train_features)
@@ -142,9 +140,7 @@ def train_all_models(
     # Summary
     successful = sum(1 for r in results.values() if r.get("status") == "success")
     failed = len(results) - successful
-    logger.info(
-        f"[bold]Training complete:[/] {successful} successful, {failed} failed"
-    )
+    logger.info(f"[bold]Training complete:[/] {successful} successful, {failed} failed")
 
     return results
 
@@ -200,13 +196,15 @@ def _train_single_model(
 
         with mlflow.start_run(run_name=model_id) as run:
             # Log model configuration
-            mlflow.set_tags({
-                "model_id": model_id,
-                "model_type": model_type,
-                "model_category": category,
-                "description": model_config.get("description", ""),
-                "training_engine": "ray",
-            })
+            mlflow.set_tags(
+                {
+                    "model_id": model_id,
+                    "model_type": model_type,
+                    "model_category": category,
+                    "description": model_config.get("description", ""),
+                    "training_engine": "ray",
+                }
+            )
 
             # ── Feature Selection ────────────────────────────────────────
             target = train_df[target_col] if target_col else None
@@ -337,9 +335,16 @@ def _run_ray_tune_hpo(
         """Single Ray Tune trial: train + evaluate one hyperparameter set."""
         # Ensure int types for integer params
         params = dict(config_sample)
-        for k in ["max_depth", "n_estimators", "n_clusters", "n_init",
-                   "max_iter", "min_child_weight", "min_child_samples",
-                   "num_leaves"]:
+        for k in [
+            "max_depth",
+            "n_estimators",
+            "n_clusters",
+            "n_init",
+            "max_iter",
+            "min_child_weight",
+            "min_child_samples",
+            "num_leaves",
+        ]:
             if k in params:
                 params[k] = int(params[k])
 
@@ -376,9 +381,16 @@ def _run_ray_tune_hpo(
     best_trial_params = best_result.config
 
     # Ensure int types in best params
-    for k in ["max_depth", "n_estimators", "n_clusters", "n_init",
-               "max_iter", "min_child_weight", "min_child_samples",
-               "num_leaves"]:
+    for k in [
+        "max_depth",
+        "n_estimators",
+        "n_clusters",
+        "n_init",
+        "max_iter",
+        "min_child_weight",
+        "min_child_samples",
+        "num_leaves",
+    ]:
         if k in best_trial_params:
             best_trial_params[k] = int(best_trial_params[k])
 
@@ -388,9 +400,7 @@ def _run_ray_tune_hpo(
         best_model.fit(X)
         best_metrics = _evaluate_clustering(best_model, X)
     else:
-        best_metrics, best_model = _cross_validate(
-            best_model, X, y, cv_folds, category
-        )
+        best_metrics, best_model = _cross_validate(best_model, X, y, cv_folds, category)
 
     return best_model, best_trial_params, best_metrics
 
@@ -399,6 +409,7 @@ def _create_model(model_type: str, params: dict) -> Any:
     """Create a model instance from type string and parameters."""
     if model_type == "xgboost_classifier":
         import xgboost as xgb
+
         return xgb.XGBClassifier(
             **params,
             use_label_encoder=False,
@@ -408,6 +419,7 @@ def _create_model(model_type: str, params: dict) -> Any:
         )
     elif model_type == "xgboost_regressor":
         import xgboost as xgb
+
         return xgb.XGBRegressor(
             **params,
             random_state=42,
@@ -415,6 +427,7 @@ def _create_model(model_type: str, params: dict) -> Any:
         )
     elif model_type == "lightgbm_classifier":
         import lightgbm as lgb
+
         return lgb.LGBMClassifier(
             **params,
             random_state=42,
@@ -422,6 +435,7 @@ def _create_model(model_type: str, params: dict) -> Any:
         )
     elif model_type == "lightgbm_regressor":
         import lightgbm as lgb
+
         return lgb.LGBMRegressor(
             **params,
             random_state=42,
@@ -498,7 +512,7 @@ def _evaluate_clustering(model: Any, X: pd.DataFrame) -> dict:
     labels = model.labels_
     n_clusters = len(set(labels))
 
-    metrics = {"n_clusters": n_clusters}
+    metrics: dict[str, Any] = {"n_clusters": n_clusters}
 
     if n_clusters > 1 and n_clusters < len(X):
         try:
@@ -512,12 +526,8 @@ def _evaluate_clustering(model: Any, X: pd.DataFrame) -> dict:
                 X_sample = X
                 labels_sample = labels
 
-            metrics["silhouette_score"] = float(
-                silhouette_score(X_sample, labels_sample)
-            )
-            metrics["calinski_harabasz"] = float(
-                calinski_harabasz_score(X, labels)
-            )
+            metrics["silhouette_score"] = float(silhouette_score(X_sample, labels_sample))
+            metrics["calinski_harabasz"] = float(calinski_harabasz_score(X, labels))
         except Exception as e:
             metrics["silhouette_score"] = 0.0
 
@@ -556,6 +566,7 @@ def _evaluate_champion_challenger(
 def _clone_model(model: Any) -> Any:
     """Create a fresh copy of a model with the same parameters."""
     from sklearn.base import clone
+
     return clone(model)
 
 

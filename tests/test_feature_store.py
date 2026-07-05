@@ -18,6 +18,7 @@ import pandas as pd
 import pytest
 
 import sys
+
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 from src.feature_store import (
@@ -39,13 +40,15 @@ def sample_features():
     """Generate a sample feature DataFrame."""
     np.random.seed(42)
     n = 100
-    return pd.DataFrame({
-        "record_id": range(n),
-        "feature_alpha": np.random.randn(n),
-        "feature_beta": np.random.uniform(0, 100, n),
-        "feature_gamma": np.random.choice(["A", "B", "C"], n),
-        "date_ref": pd.date_range("2024-01-01", periods=n, freq="D"),
-    })
+    return pd.DataFrame(
+        {
+            "record_id": range(n),
+            "feature_alpha": np.random.randn(n),
+            "feature_beta": np.random.uniform(0, 100, n),
+            "feature_gamma": np.random.choice(["A", "B", "C"], n),
+            "date_ref": pd.date_range("2024-01-01", periods=n, freq="D"),
+        }
+    )
 
 
 class TestLocalFeatureStore:
@@ -54,7 +57,9 @@ class TestLocalFeatureStore:
     def test_register_and_retrieve(self, store, sample_features):
         """Registered features should be retrievable."""
         meta = store.register_feature_table(
-            "fs_test", sample_features, version="v1",
+            "fs_test",
+            sample_features,
+            version="v1",
             description="Test feature set",
         )
         assert meta.name == "fs_test"
