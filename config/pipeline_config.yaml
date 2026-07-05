@@ -43,6 +43,9 @@ data:
     inference_input: "data/inference/input/"
     inference_output: "data/inference/output/"
     monitoring_reports: "data/monitoring/"
+    feature_store: "data/feature_store/"
+    audit_logs: "data/audit/"
+    snapshots: "data/snapshots/"
 
 # ── Feature Engineering ──────────────────────────────────────────────────────
 # Feature engineering runs on Spark (PySpark in production, Pandas locally).
