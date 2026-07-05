@@ -144,13 +144,14 @@ models:
     champion_threshold:
       r2_min: 0.20
 
-  # ── Clustering Models ────────────────────────────────────────────────────
+  # ── Clustering Models (no dependencies — run first) ──────────────────────
   - model_id: "clust_customer_segments"
     description: "Customer segmentation via KMeans"
     model_type: "sklearn_kmeans"
     target_column: null            # Unsupervised
     feature_set_id: "fs_all_features"
     training_filter: null
+    depends_on: []                # No dependencies — runs first
     hyperparameter_space:
       n_clusters: [3, 5, 8, 10]
       init: ["k-means++"]
@@ -166,6 +167,7 @@ models:
     target_column: null
     feature_set_id: "fs_all_features"
     training_filter: null
+    depends_on: []                # No dependencies — runs first
     hyperparameter_space:
       n_clusters: [5, 8, 12]
       init: ["k-means++"]
@@ -174,6 +176,36 @@ models:
     evaluation_metrics: ["silhouette_score", "calinski_harabasz"]
     champion_threshold:
       silhouette_min: 0.10
+
+  # ── Dependent Models (depend on clustering output) ───────────────────────
+  - model_id: "clf_segment_propensity"
+    description: "Propensity model using customer segments as features"
+    model_type: "xgboost_classifier"
+    target_column: "target_binary"
+    feature_set_id: "fs_all_features"
+    training_filter: null
+    depends_on: ["clust_customer_segments", "clust_product_affinity"]
+    hyperparameter_space:
+      max_depth: [3, 5, 7]
+      learning_rate: [0.01, 0.05, 0.1]
+      n_estimators: [100, 300]
+      subsample: [0.7, 0.8]
+    champion_threshold:
+      roc_auc_min: 0.65
+
+  - model_id: "reg_segment_ltv"
+    description: "Segment-specific LTV prediction using cluster features"
+    model_type: "xgboost_regressor"
+    target_column: "target_continuous"
+    feature_set_id: "fs_all_features"
+    training_filter: null
+    depends_on: ["clust_customer_segments"]
+    hyperparameter_space:
+      max_depth: [3, 5]
+      learning_rate: [0.01, 0.05]
+      n_estimators: [100, 300]
+    champion_threshold:
+      r2_min: 0.30
 
 # ── Feature Sets ───────────────────────────────────────────────────────────
 feature_sets:
