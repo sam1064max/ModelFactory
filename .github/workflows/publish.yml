@@ -1,0 +1,63 @@
+# ──────────────────────────────────────────────────────────────────────────────
+# MLOps Platform — Package Publisher
+# ──────────────────────────────────────────────────────────────────────────────
+# Triggered when a GitHub Release is published.
+# Builds the wheel and publishes it to PyPI.
+# ──────────────────────────────────────────────────────────────────────────────
+# Required secret:
+#   PYPI_API_TOKEN — PyPI API token (classic or trusted publisher)
+#   Create at: https://pypi.org/manage/account/token/
+#   Add at:    https://github.com/sam1064max/ModelFactory/settings/secrets/actions
+# ──────────────────────────────────────────────────────────────────────────────
+
+name: Publish to PyPI
+
+on:
+  release:
+    types: [published]
+
+env:
+  PYTHON_VERSION: "3.11"
+
+jobs:
+  build-and-publish:
+    name: Build & Publish
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write       # to upload wheel to release
+      id-token: write       # for trusted publishing (PyPI OIDC)
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python ${{ env.PYTHON_VERSION }}
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+
+      - name: Install build tools
+        run: |
+          python -m pip install --upgrade pip
+          pip install build twine
+
+      - name: Build wheel
+        run: python -m build --wheel
+
+      - name: Check wheel
+        run: twine check dist/*
+
+      - name: Upload wheel to release
+        uses: svenstaro/upload-release-action@v2
+        with:
+          repo_token: ${{ secrets.GITHUB_TOKEN }}
+          file: dist/*.whl
+          tag: ${{ github.event.release.tag_name }}
+          overwrite: true
+          file_glob: true
+
+      - name: Publish to PyPI
+        uses: pypa/gh-action-pypi-publish@release/v1
+        with:
+          password: ${{ secrets.PYPI_API_TOKEN }}
+          packages-dir: dist/
+          verbose: true
