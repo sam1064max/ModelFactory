@@ -1,0 +1,84 @@
+# ──────────────────────────────────────────────────────────────────────────────
+# Docker Compose — MLOps Platform Local Development
+# ──────────────────────────────────────────────────────────────────────────────
+# Usage:
+#   docker compose up              — Run full pipeline + MLflow UI
+#   docker compose up mlflow       — Start only MLflow UI
+#   docker compose run pipeline    — Run pipeline once
+#   docker compose run tests       — Run unit tests
+#   docker compose down -v         — Tear down + remove volumes
+# ──────────────────────────────────────────────────────────────────────────────
+
+services:
+  # ── Full Pipeline Run ────────────────────────────────────────────────────
+  pipeline:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: mlops-pipeline
+    environment:
+      - MLFLOW_TRACKING_URI=sqlite:///app/data/mlflow/mlflow.db
+      - MLFLOW_ARTIFACT_ROOT=/app/data/mlflow/artifacts
+      - PIPELINE_ENV=docker
+    volumes:
+      - mlops-data:/app/data
+      - ./config:/app/config:ro
+    depends_on:
+      - mlflow
+    profiles:
+      - pipeline
+
+  # ── MLflow Tracking Server ──────────────────────────────────────────────
+  mlflow:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: mlops-mlflow
+    entrypoint: >
+      python -m mlflow server
+        --backend-store-uri sqlite:///app/data/mlflow/mlflow.db
+        --default-artifact-root /app/data/mlflow/artifacts
+        --host 0.0.0.0
+        --port 5000
+    ports:
+      - "5000:5000"
+    volumes:
+      - mlops-data:/app/data
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:5000/health')"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+
+  # ── Run Tests ───────────────────────────────────────────────────────────
+  tests:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: mlops-tests
+    entrypoint: ["python", "-m", "pytest", "tests/", "-v", "--tb=short"]
+    environment:
+      - MLFLOW_TRACKING_URI=sqlite:///tmp/test-mlflow.db
+    profiles:
+      - test
+
+  # ── Interactive Shell ───────────────────────────────────────────────────
+  shell:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: mlops-shell
+    entrypoint: ["/bin/bash"]
+    stdin_open: true
+    tty: true
+    volumes:
+      - mlops-data:/app/data
+      - ./config:/app/config
+      - ./src:/app/src
+    profiles:
+      - dev
+
+volumes:
+  mlops-data:
+    driver: local
