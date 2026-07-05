@@ -12,6 +12,7 @@ This implementation demonstrates:
 - **Monitoring** → Drift detection with Evidently AI
 - **Orchestration** → Local pipeline runner + Databricks Workflow configs
 - **Infrastructure** → Terraform templates for Databricks provisioning
+- **Frontend** → Interactive Streamlit dashboard with live pipeline visualization
 
 ## Quick Start (Local Demo)
 
@@ -26,7 +27,7 @@ cd mlops_pipeline
 pip install -r requirements.txt
 ```
 
-### Run the Full Pipeline
+### Run the Full Pipeline (CLI)
 
 ```bash
 python -m orchestration.pipeline_runner
@@ -39,6 +40,23 @@ This will:
 4. Train 10 models (5 classification + 5 regression) with MLflow tracking
 5. Run batch inference on synthetic universe (100K rows)
 6. Run drift detection (Evidently reports)
+
+### Launch the Streamlit Dashboard
+
+```bash
+streamlit run app.py
+```
+
+Navigate to `http://localhost:8501` for an interactive pipeline dashboard:
+
+- **Pipeline Execution** — Run the full pipeline from the UI with configurable parameters
+- **Live Logs** — Real-time log streaming as each stage executes
+- **Metrics Dashboard** — KPI cards for trained models, features, drift, and timing
+- **Architecture Page** — Graphviz diagram with full system overview
+
+> ![Pipeline Dashboard](docs/screenshots/pipeline.png)
+> ![Architecture Page](docs/screenshots/architecture.png)
+> *(Add screenshots to `docs/screenshots/` after running locally)*
 
 ### View MLflow Dashboard
 
@@ -81,6 +99,13 @@ terraform apply -var-file="prod.tfvars"
 mlops_pipeline/
 ├── README.md                          # This file
 ├── requirements.txt                   # Python dependencies
+├── app.py                             # Streamlit dashboard (main entry)
+├── pages/
+│   └── Architecture.py                # Architecture diagram page
+├── frontend/
+│   └── pipeline_runner.py             # Streamlit-aware pipeline wrapper
+├── .streamlit/
+│   └── config.toml                    # Streamlit theme & server config
 ├── config/
 │   ├── pipeline_config.yaml           # Pipeline configuration
 │   └── model_registry.yaml            # Model definitions (10 demo models)
