@@ -193,7 +193,7 @@ resource "databricks_instance_pool" "training_pool" {
   idle_instance_autotermination_minutes = 30
 
   aws_attributes {
-    availability = "SPOT_WITH_FALLBACK"
+    availability = "SPOT"
     spot_bid_price_percent = 100
   }
 
@@ -213,7 +213,7 @@ resource "databricks_instance_pool" "inference_pool" {
   idle_instance_autotermination_minutes = 20
 
   aws_attributes {
-    availability = "SPOT_WITH_FALLBACK"
+    availability = "SPOT"
     spot_bid_price_percent = 100
   }
 
