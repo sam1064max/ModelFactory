@@ -99,9 +99,7 @@ class ModelDependencyGraph:
 
         if len(sorted_order) != len(self._models):
             cyclic = set(self._models.keys()) - set(sorted_order)
-            raise DAGCycleError(
-                f"Circular dependency detected among models: {cyclic}"
-            )
+            raise DAGCycleError(f"Circular dependency detected among models: {cyclic}")
 
         self._topo_order = sorted_order
         logger.info(
@@ -110,9 +108,7 @@ class ModelDependencyGraph:
         )
         return sorted_order
 
-    def get_dependency_graph(
-        self, model_id: str, transitive: bool = True
-    ) -> dict[str, list[str]]:
+    def get_dependency_graph(self, model_id: str, transitive: bool = True) -> dict[str, Any]:
         """
         Return the dependency sub-graph for a single model.
 
@@ -135,7 +131,7 @@ class ModelDependencyGraph:
             queue = deque(upstream)
             while queue:
                 node = queue.popleft()
-                deps = self._graph.get(node, [])
+                deps: set[str] = self._graph.get(node, set())
                 for dep in deps:
                     if dep not in visited:
                         visited.add(dep)
@@ -184,8 +180,7 @@ class ModelDependencyGraph:
         remaining = set(order)
         while remaining:
             layer = [
-                m for m in remaining
-                if all(dep in processed for dep in self._graph.get(m, []))
+                m for m in remaining if all(dep in processed for dep in self._graph.get(m, []))
             ]
             if not layer:
                 # Should not happen if DAG is valid, but guard against it
@@ -214,9 +209,7 @@ class ModelDependencyGraph:
         for model_id, deps in self._graph.items():
             for dep in deps:
                 if dep not in self._models:
-                    issues.append(
-                        f"Model '{model_id}' depends on unknown model '{dep}'"
-                    )
+                    issues.append(f"Model '{model_id}' depends on unknown model '{dep}'")
 
         # Check for cycles
         try:
@@ -230,9 +223,7 @@ class ModelDependencyGraph:
             all_referenced.update(deps)
         for model_id in self._models:
             if model_id not in all_referenced and not self._graph.get(model_id):
-                issues.append(
-                    f"Model '{model_id}' is orphaned — no dependencies or dependents"
-                )
+                issues.append(f"Model '{model_id}' is orphaned — no dependencies or dependents")
 
         if not issues:
             logger.info(f"Model DAG: validation passed ({len(self._models)} models)")
@@ -250,17 +241,17 @@ class ModelDependencyGraph:
             dag.export_dot("deps.dot")
             # dot -Tpng deps.dot -o deps.png
         """
-        lines = ['digraph ModelDependencies {']
-        lines.append('  rankdir=LR;')
+        lines = ["digraph ModelDependencies {"]
+        lines.append("  rankdir=LR;")
         lines.append('  node [shape=box, style=rounded, fontname="monospace"];')
         lines.append('  edge [arrowhead=vee, color="#666666"];')
 
         for model_id in self._models:
-            deps = self._graph.get(model_id, [])
+            deps: set[str] = self._graph.get(model_id, set())
             for dep in deps:
                 lines.append(f'  "{dep}" -> "{model_id}";')
 
-        lines.append('}')
+        lines.append("}")
 
         with open(path, "w") as f:
             f.write("\n".join(lines) + "\n")
