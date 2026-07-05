@@ -63,6 +63,33 @@ services:
     profiles:
       - test
 
+  # ── Streamlit Dashboard ────────────────────────────────────────────────
+  streamlit:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: mlops-streamlit
+    entrypoint: >
+      streamlit run app.py
+        --server.port 8501
+        --server.address 0.0.0.0
+    ports:
+      - "8501:8501"
+    environment:
+      - MLFLOW_TRACKING_URI=sqlite:///app/data/mlflow/mlflow.db
+      - PIPELINE_ENV=docker
+    volumes:
+      - mlops-data:/app/data
+      - ./config:/app/config:ro
+    depends_on:
+      - mlflow
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8501/healthz')"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 15s
+
   # ── Interactive Shell ───────────────────────────────────────────────────
   shell:
     build:
