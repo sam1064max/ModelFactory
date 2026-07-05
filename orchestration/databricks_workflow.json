@@ -1,0 +1,281 @@
+{
+  "name": "mlops-platform-daily-pipeline",
+  "description": "End-to-end MLOps pipeline: Data Ingestion → Feature Engineering → Model Training → Batch Inference → Monitoring. Designed for 10,000 models scoring 750M records each.",
+
+  "tags": {
+    "team": "ml-platform",
+    "environment": "production",
+    "cost_center": "ml-ops"
+  },
+
+  "schedule": {
+    "quartz_cron_expression": "0 0 2 * * ?",
+    "timezone_id": "UTC",
+    "pause_status": "UNPAUSED"
+  },
+
+  "job_clusters": [
+    {
+      "job_cluster_key": "feature_engineering_cluster",
+      "new_cluster": {
+        "spark_version": "15.4.x-scala2.12",
+        "node_type_id": "i3.2xlarge",
+        "num_workers": 10,
+        "autoscale": {
+          "min_workers": 5,
+          "max_workers": 50
+        },
+        "spark_conf": {
+          "spark.databricks.delta.optimizeWrite.enabled": "true",
+          "spark.databricks.delta.autoCompact.enabled": "true",
+          "spark.sql.shuffle.partitions": "200"
+        },
+        "aws_attributes": {
+          "availability": "SPOT_WITH_FALLBACK",
+          "spot_bid_price_percent": 100,
+          "first_on_demand": 2
+        },
+        "custom_tags": {
+          "pipeline_stage": "feature_engineering"
+        }
+      }
+    },
+    {
+      "job_cluster_key": "training_cluster",
+      "new_cluster": {
+        "spark_version": "15.4.x-ml-scala2.12",
+        "node_type_id": "i3.2xlarge",
+        "num_workers": 20,
+        "autoscale": {
+          "min_workers": 10,
+          "max_workers": 50
+        },
+        "spark_conf": {
+          "spark.databricks.delta.optimizeWrite.enabled": "true",
+          "spark.task.maxFailures": "4"
+        },
+        "aws_attributes": {
+          "availability": "SPOT_WITH_FALLBACK",
+          "spot_bid_price_percent": 100,
+          "first_on_demand": 3
+        },
+        "custom_tags": {
+          "pipeline_stage": "model_training"
+        }
+      }
+    },
+    {
+      "job_cluster_key": "inference_cluster",
+      "new_cluster": {
+        "spark_version": "15.4.x-scala2.12",
+        "node_type_id": "c5.4xlarge",
+        "num_workers": 50,
+        "autoscale": {
+          "min_workers": 20,
+          "max_workers": 100
+        },
+        "spark_conf": {
+          "spark.databricks.delta.optimizeWrite.enabled": "true",
+          "spark.databricks.delta.autoCompact.enabled": "true",
+          "spark.sql.shuffle.partitions": "500",
+          "spark.databricks.photon.enabled": "true"
+        },
+        "aws_attributes": {
+          "availability": "SPOT_WITH_FALLBACK",
+          "spot_bid_price_percent": 100,
+          "first_on_demand": 5
+        },
+        "custom_tags": {
+          "pipeline_stage": "batch_inference"
+        }
+      }
+    },
+    {
+      "job_cluster_key": "monitoring_cluster",
+      "new_cluster": {
+        "spark_version": "15.4.x-scala2.12",
+        "node_type_id": "m5.xlarge",
+        "num_workers": 2,
+        "custom_tags": {
+          "pipeline_stage": "monitoring"
+        }
+      }
+    }
+  ],
+
+  "tasks": [
+    {
+      "task_key": "data_ingestion",
+      "description": "Ingest raw data into Bronze layer using Auto Loader / DLT",
+      "job_cluster_key": "feature_engineering_cluster",
+      "notebook_task": {
+        "notebook_path": "/Repos/ml-platform/mlops_pipeline/databricks/notebooks/01_data_ingestion",
+        "base_parameters": {
+          "catalog": "ml_platform",
+          "schema": "production",
+          "run_date": "{{job.start_time.iso_date}}"
+        }
+      },
+      "timeout_seconds": 3600,
+      "max_retries": 2,
+      "retry_on_timeout": true
+    },
+    {
+      "task_key": "feature_engineering",
+      "description": "Transform raw features into engineered feature tables",
+      "depends_on": [
+        {"task_key": "data_ingestion"}
+      ],
+      "job_cluster_key": "feature_engineering_cluster",
+      "notebook_task": {
+        "notebook_path": "/Repos/ml-platform/mlops_pipeline/databricks/notebooks/02_feature_engineering",
+        "base_parameters": {
+          "catalog": "ml_platform",
+          "schema": "production",
+          "feature_set": "fs_all_features"
+        }
+      },
+      "timeout_seconds": 7200,
+      "max_retries": 2
+    },
+    {
+      "task_key": "model_training_batch_1",
+      "description": "Train models 1-2500",
+      "depends_on": [
+        {"task_key": "feature_engineering"}
+      ],
+      "job_cluster_key": "training_cluster",
+      "notebook_task": {
+        "notebook_path": "/Repos/ml-platform/mlops_pipeline/databricks/notebooks/03_model_training",
+        "base_parameters": {
+          "catalog": "ml_platform",
+          "schema": "production",
+          "model_batch_start": "0",
+          "model_batch_end": "2500"
+        }
+      },
+      "timeout_seconds": 28800,
+      "max_retries": 1
+    },
+    {
+      "task_key": "model_training_batch_2",
+      "description": "Train models 2501-5000",
+      "depends_on": [
+        {"task_key": "feature_engineering"}
+      ],
+      "job_cluster_key": "training_cluster",
+      "notebook_task": {
+        "notebook_path": "/Repos/ml-platform/mlops_pipeline/databricks/notebooks/03_model_training",
+        "base_parameters": {
+          "catalog": "ml_platform",
+          "schema": "production",
+          "model_batch_start": "2500",
+          "model_batch_end": "5000"
+        }
+      },
+      "timeout_seconds": 28800,
+      "max_retries": 1
+    },
+    {
+      "task_key": "model_training_batch_3",
+      "description": "Train models 5001-7500",
+      "depends_on": [
+        {"task_key": "feature_engineering"}
+      ],
+      "job_cluster_key": "training_cluster",
+      "notebook_task": {
+        "notebook_path": "/Repos/ml-platform/mlops_pipeline/databricks/notebooks/03_model_training",
+        "base_parameters": {
+          "catalog": "ml_platform",
+          "schema": "production",
+          "model_batch_start": "5000",
+          "model_batch_end": "7500"
+        }
+      },
+      "timeout_seconds": 28800,
+      "max_retries": 1
+    },
+    {
+      "task_key": "model_training_batch_4",
+      "description": "Train models 7501-10000",
+      "depends_on": [
+        {"task_key": "feature_engineering"}
+      ],
+      "job_cluster_key": "training_cluster",
+      "notebook_task": {
+        "notebook_path": "/Repos/ml-platform/mlops_pipeline/databricks/notebooks/03_model_training",
+        "base_parameters": {
+          "catalog": "ml_platform",
+          "schema": "production",
+          "model_batch_start": "7500",
+          "model_batch_end": "10000"
+        }
+      },
+      "timeout_seconds": 28800,
+      "max_retries": 1
+    },
+    {
+      "task_key": "batch_inference",
+      "description": "Score 750M records for all production models",
+      "depends_on": [
+        {"task_key": "model_training_batch_1"},
+        {"task_key": "model_training_batch_2"},
+        {"task_key": "model_training_batch_3"},
+        {"task_key": "model_training_batch_4"}
+      ],
+      "job_cluster_key": "inference_cluster",
+      "notebook_task": {
+        "notebook_path": "/Repos/ml-platform/mlops_pipeline/databricks/notebooks/04_batch_inference",
+        "base_parameters": {
+          "catalog": "ml_platform",
+          "schema": "production",
+          "inference_date": "{{job.start_time.iso_date}}"
+        }
+      },
+      "timeout_seconds": 86400,
+      "max_retries": 2,
+      "retry_on_timeout": true
+    },
+    {
+      "task_key": "monitoring",
+      "description": "Run drift detection and alerting on inference results",
+      "depends_on": [
+        {"task_key": "batch_inference"}
+      ],
+      "job_cluster_key": "monitoring_cluster",
+      "notebook_task": {
+        "notebook_path": "/Repos/ml-platform/mlops_pipeline/databricks/notebooks/05_monitoring",
+        "base_parameters": {
+          "catalog": "ml_platform",
+          "schema": "production",
+          "run_date": "{{job.start_time.iso_date}}"
+        }
+      },
+      "timeout_seconds": 3600,
+      "max_retries": 1
+    }
+  ],
+
+  "email_notifications": {
+    "on_failure": ["ml-platform-oncall@company.com"],
+    "on_success": ["ml-platform-team@company.com"]
+  },
+
+  "webhook_notifications": {
+    "on_failure": [
+      {
+        "id": "slack-ml-alerts-webhook-id"
+      }
+    ]
+  },
+
+  "run_as": {
+    "service_principal_name": "ml-platform-service-principal"
+  },
+
+  "queue": {
+    "enabled": true
+  },
+
+  "max_concurrent_runs": 1
+}
