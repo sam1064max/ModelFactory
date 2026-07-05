@@ -1,6 +1,6 @@
 # MLOps Pipeline — Small-Scale Implementation
 
-A working demonstration of the MLOps platform architecture described in `architecture.md`, using recommended tools and orchestration patterns.
+A working demonstration of the MLOps platform architecture described in [`architecture_final.md`](architecture_final.md), using recommended tools and orchestration patterns. The full architecture document covers the production-scale design for **10,000 models**, **7.5 trillion daily predictions**, and **< 24-hour inference SLA** on Databricks Lakehouse with Spark + Ray.
 
 ## Overview
 
