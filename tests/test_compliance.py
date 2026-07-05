@@ -18,12 +18,13 @@ import pandas as pd
 import pytest
 
 import sys
+
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 from src.compliance import (
     AuditLogger,
     AuditEntry,
-    DatasSnapshot,
+    DataSnapshot,
     PIICategory,
     SnapshotManager,
     build_erasure_plan,
@@ -36,31 +37,61 @@ from src.compliance import (
 
 # ── Fixtures ──────────────────────────────────────────────────────────────────
 
+
 @pytest.fixture
 def clean_df():
     """DataFrame with no PII."""
-    return pd.DataFrame({
-        "record_id": range(100),
-        "feature_a": np.random.randn(100),
-        "feature_b": np.random.choice(["X", "Y", "Z"], 100),
-        "score": np.random.uniform(0, 1, 100),
-    })
+    return pd.DataFrame(
+        {
+            "record_id": range(100),
+            "feature_a": np.random.randn(100),
+            "feature_b": np.random.choice(["X", "Y", "Z"], 100),
+            "score": np.random.uniform(0, 1, 100),
+        }
+    )
 
 
 @pytest.fixture
 def pii_df():
     """DataFrame containing PII columns."""
-    return pd.DataFrame({
-        "record_id": range(5),
-        "email": ["alice@example.com", "bob@test.org", "charlie@co.uk", "dave@io", "eve@site.net"],
-        "ssn_column": ["123-45-6789", "987-65-4321", "111-22-3333", "444-55-6666", "777-88-9999"],
-        "phone": ["212-555-0100", "310-555-0200", "415-555-0300", "617-555-0400", "312-555-0500"],
-        "credit_card": ["4111-1111-1111-1111", "5500-0000-0000-0004", "3400-0000-0000-009", "3000-0000-0000-0004", "6011-0000-0000-0004"],
-        "feature_score": np.random.randn(5),
-    })
+    return pd.DataFrame(
+        {
+            "record_id": range(5),
+            "email": [
+                "alice@example.com",
+                "bob@test.org",
+                "charlie@co.uk",
+                "dave@io",
+                "eve@site.net",
+            ],
+            "ssn_column": [
+                "123-45-6789",
+                "987-65-4321",
+                "111-22-3333",
+                "444-55-6666",
+                "777-88-9999",
+            ],
+            "phone": [
+                "212-555-0100",
+                "310-555-0200",
+                "415-555-0300",
+                "617-555-0400",
+                "312-555-0500",
+            ],
+            "credit_card": [
+                "4111-1111-1111-1111",
+                "5500-0000-0000-0004",
+                "3400-0000-0000-009",
+                "3000-0000-0000-0004",
+                "6011-0000-0000-0004",
+            ],
+            "feature_score": np.random.randn(5),
+        }
+    )
 
 
 # ── PII Detection Tests ───────────────────────────────────────────────────────
+
 
 class TestPIIDetection:
     """Test PII detection and masking."""
@@ -111,6 +142,7 @@ class TestPIIDetection:
 
 
 # ── Audit Logger Tests ────────────────────────────────────────────────────────
+
 
 class TestAuditLogger:
     """Test audit logging."""
@@ -183,6 +215,7 @@ class TestAuditLogger:
 
 # ── Snapshot Manager Tests ────────────────────────────────────────────────────
 
+
 class TestSnapshotManager:
     """Test data snapshot management."""
 
@@ -234,6 +267,7 @@ class TestSnapshotManager:
 
 # ── Compliance Report Tests ───────────────────────────────────────────────────
 
+
 class TestComplianceReport:
     """Test compliance report generation."""
 
@@ -273,6 +307,7 @@ class TestComplianceReport:
 
 
 # ── GDPR Erasure Tests ────────────────────────────────────────────────────────
+
 
 class TestGDPRErasure:
     """Test GDPR erasure plan building."""

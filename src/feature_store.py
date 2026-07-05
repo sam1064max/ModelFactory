@@ -47,9 +47,11 @@ from src.utils import logger
 
 # ── Data Classes ──────────────────────────────────────────────────────────────
 
+
 @dataclass
 class FeatureTableMeta:
     """Metadata for a registered feature table."""
+
     name: str
     version: str
     row_count: int
@@ -64,6 +66,7 @@ class FeatureTableMeta:
 @dataclass
 class FeatureSet:
     """A resolved set of features for a model."""
+
     feature_df: pd.DataFrame
     feature_names: list[str]
     table_versions: dict[str, str]
@@ -71,6 +74,7 @@ class FeatureSet:
 
 
 # ── Abstract Base ─────────────────────────────────────────────────────────────
+
 
 class BaseFeatureStore(ABC):
     """Abstract feature store — all backends must implement this interface."""
@@ -126,6 +130,7 @@ class BaseFeatureStore(ABC):
 
 
 # ── Local Parquet-Backed Implementation ───────────────────────────────────────
+
 
 class LocalFeatureStore(BaseFeatureStore):
     """
@@ -241,12 +246,16 @@ class LocalFeatureStore(BaseFeatureStore):
 
             # Merge on entity key
             if entity_key_column in merged.columns and entity_key_column in features.columns:
-                merged = merged.merge(features, on=entity_key_column, how="left", suffixes=("", f"_{table_name}"))
+                merged = merged.merge(
+                    features, on=entity_key_column, how="left", suffixes=("", f"_{table_name}")
+                )
 
             table_versions[table_name] = meta.version
 
         # Drop non-feature columns that came from entity_df
-        feature_names = [c for c in merged.columns if c not in entity_df.columns or c == entity_key_column]
+        feature_names = [
+            c for c in merged.columns if c not in entity_df.columns or c == entity_key_column
+        ]
 
         logger.info(
             f"Feature Store: assembled training set — "
@@ -319,6 +328,7 @@ class LocalFeatureStore(BaseFeatureStore):
 
 # ── Databricks Unity Catalog Feature Store (Production) ──────────────────────
 
+
 class DatabricksFeatureStore(BaseFeatureStore):
     """
     Production Feature Store backed by Databricks Unity Catalog.
@@ -351,6 +361,7 @@ class DatabricksFeatureStore(BaseFeatureStore):
             return
         try:
             from databricks.feature_store import FeatureStoreClient
+
             self._backend = FeatureStoreClient()
         except ImportError:
             raise RuntimeError(
@@ -425,6 +436,7 @@ class DatabricksFeatureStore(BaseFeatureStore):
 
 # ── Helper: create the right store for the environment ────────────────────────
 
+
 def create_feature_store(config: dict) -> BaseFeatureStore:
     """
     Factory: returns the appropriate Feature Store based on config.
@@ -443,7 +455,5 @@ def create_feature_store(config: dict) -> BaseFeatureStore:
         )
 
     # Local / development
-    fs_path = config.get("data", {}).get("paths", {}).get(
-        "feature_store", "data/feature_store"
-    )
+    fs_path = config.get("data", {}).get("paths", {}).get("feature_store", "data/feature_store")
     return LocalFeatureStore(root_path=fs_path)

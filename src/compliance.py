@@ -41,8 +41,10 @@ from src.utils import logger
 
 # ── Enums & Data Classes ─────────────────────────────────────────────────────
 
+
 class PIICategory(str, Enum):
     """PII categories for data classification."""
+
     EMAIL = "email"
     SSN = "ssn"
     CREDIT_CARD = "credit_card"
@@ -56,6 +58,7 @@ class PIICategory(str, Enum):
 
 class DataClassification(str, Enum):
     """Data sensitivity levels."""
+
     PUBLIC = "public"
     INTERNAL = "internal"
     CONFIDENTIAL = "confidential"
@@ -67,15 +70,16 @@ class DataClassification(str, Enum):
 @dataclass
 class AuditEntry:
     """A single audit log entry."""
+
     timestamp: str
-    operation: str            # e.g., "training", "inference", "data_access"
-    actor: str                # user or service principal
+    operation: str  # e.g., "training", "inference", "data_access"
+    actor: str  # user or service principal
     model_id: Optional[str] = None
     dataset_hash: Optional[str] = None
     feature_table: Optional[str] = None
     target_table: Optional[str] = None
     records_affected: int = 0
-    status: str = "success"   # success | failure
+    status: str = "success"  # success | failure
     details: dict[str, Any] = field(default_factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
@@ -94,6 +98,7 @@ class DataSnapshot:
       - The MLflow run ID
       - The model config version
     """
+
     snapshot_id: str
     created_at: str
     dataset_hash: str
@@ -199,24 +204,38 @@ def mask_pii_columns(
 
         for cat in categories:
             if cat == PIICategory.EMAIL:
-                result[col] = result[col].astype(str).apply(
-                    lambda x: re.sub(
-                        r"([a-zA-Z0-9._%+-]+)(@.*)",
-                        lambda m: "*" * len(m.group(1)) + m.group(2),
-                        x,
+                result[col] = (
+                    result[col]
+                    .astype(str)
+                    .apply(
+                        lambda x: re.sub(
+                            r"([a-zA-Z0-9._%+-]+)(@.*)",
+                            lambda m: "*" * len(m.group(1)) + m.group(2),
+                            x,
+                        )
                     )
                 )
             elif cat == PIICategory.SSN:
-                result[col] = result[col].astype(str).apply(
-                    lambda x: re.sub(r"\d{3}-\d{2}-(\d{4})", r"***-**-\1", x)
+                result[col] = (
+                    result[col]
+                    .astype(str)
+                    .apply(lambda x: re.sub(r"\d{3}-\d{2}-(\d{4})", r"***-**-\1", x))
                 )
             elif cat == PIICategory.CREDIT_CARD:
-                result[col] = result[col].astype(str).apply(
-                    lambda x: re.sub(r"\d{4}[-\s]?\d{4}[-\s]?\d{4}[-\s]?(\d{4})", r"****-****-****-\1", x)
+                result[col] = (
+                    result[col]
+                    .astype(str)
+                    .apply(
+                        lambda x: re.sub(
+                            r"\d{4}[-\s]?\d{4}[-\s]?\d{4}[-\s]?(\d{4})", r"****-****-****-\1", x
+                        )
+                    )
                 )
             elif cat == PIICategory.PHONE:
-                result[col] = result[col].astype(str).apply(
-                    lambda x: re.sub(r"(\d{3})[-.\s]?\d{3}[-.\s]?(\d{4})", r"\1-***-\2", x)
+                result[col] = (
+                    result[col]
+                    .astype(str)
+                    .apply(lambda x: re.sub(r"(\d{3})[-.\s]?\d{3}[-.\s]?(\d{4})", r"\1-***-\2", x))
                 )
             else:
                 result[col] = result[col].apply(lambda x: "[REDACTED]")
@@ -226,6 +245,7 @@ def mask_pii_columns(
 
 
 # ── Audit Logging ─────────────────────────────────────────────────────────────
+
 
 class AuditLogger:
     """
@@ -313,6 +333,7 @@ class AuditLogger:
 
 # ── Data Versioning / Snapshot Manager ────────────────────────────────────────
 
+
 class SnapshotManager:
     """
     Manages reproducible data snapshots for model training and inference.
@@ -394,9 +415,12 @@ class SnapshotManager:
         """Try to get the current Git commit SHA."""
         try:
             import subprocess
+
             result = subprocess.run(
                 ["git", "rev-parse", "--short", "HEAD"],
-                capture_output=True, text=True, timeout=5,
+                capture_output=True,
+                text=True,
+                timeout=5,
             )
             if result.returncode == 0:
                 return result.stdout.strip()
@@ -406,6 +430,7 @@ class SnapshotManager:
 
 
 # ── Compliance Report ─────────────────────────────────────────────────────────
+
 
 def generate_compliance_report(
     df: pd.DataFrame,
@@ -435,10 +460,7 @@ def generate_compliance_report(
 
     # PII scan
     pii_results = detect_pii_columns(df)
-    report["pii_scan"] = {
-        col: [c.value for c in cats]
-        for col, cats in pii_results.items()
-    }
+    report["pii_scan"] = {col: [c.value for c in cats] for col, cats in pii_results.items()}
     report["has_pii"] = len(pii_results) > 0
 
     if report["has_pii"]:
@@ -463,20 +485,20 @@ def generate_compliance_report(
 
     # Audit log summary
     if audit_logger:
-        report["audit_entries"] = [
-            e.to_dict() for e in audit_logger.get_recent(10)
-        ]
+        report["audit_entries"] = [e.to_dict() for e in audit_logger.get_recent(10)]
 
     return report
 
 
 # ── GDPR / CCPA Utilities ─────────────────────────────────────────────────────
 
+
 @dataclass
 class ErasurePlan:
     """
     Plan for erasing a user's data across all tables (GDPR Right to Erasure).
     """
+
     user_id: str
     tables_to_modify: list[dict[str, Any]]
     estimated_records: int
@@ -507,14 +529,14 @@ def build_erasure_plan(
     """
     table_details = []
     for table in tables:
-        table_details.append({
-            "table": table,
-            "record_id_column": record_id_column,
-            "delete_condition": f"{record_id_column} = '{user_id}'",
-            "statement": (
-                f"DELETE FROM {table} WHERE {record_id_column} = '{user_id}'"
-            ),
-        })
+        table_details.append(
+            {
+                "table": table,
+                "record_id_column": record_id_column,
+                "delete_condition": f"{record_id_column} = '{user_id}'",
+                "statement": (f"DELETE FROM {table} WHERE {record_id_column} = '{user_id}'"),
+            }
+        )
 
     plan = ErasurePlan(
         user_id=user_id,
@@ -523,8 +545,5 @@ def build_erasure_plan(
         cascade_to_downstream=cascade,
     )
 
-    logger.info(
-        f"Erasure plan for user '{user_id}': "
-        f"{len(tables)} tables affected"
-    )
+    logger.info(f"Erasure plan for user '{user_id}': {len(tables)} tables affected")
     return plan
