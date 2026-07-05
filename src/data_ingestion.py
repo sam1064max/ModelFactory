@@ -13,6 +13,7 @@ In production (Databricks), this would be replaced by:
 
 import string
 from datetime import datetime, timedelta
+from typing import Any
 
 import numpy as np
 import pandas as pd
@@ -62,9 +63,7 @@ def generate_synthetic_data(config: dict) -> tuple[pd.DataFrame, pd.DataFrame]:
 
         # Save as Parquet (Bronze layer)
         paths = config["data"]["paths"]
-        save_parquet(
-            train_df, f"{paths['raw_data']}training_data.parquet", "Training data"
-        )
+        save_parquet(train_df, f"{paths['raw_data']}training_data.parquet", "Training data")
         save_parquet(
             inference_df,
             f"{paths['inference_input']}inference_universe.parquet",
@@ -90,7 +89,7 @@ def _generate_dataset(
 ) -> pd.DataFrame:
     """Generate a synthetic dataset with multiple feature types."""
     rng = np.random.RandomState(seed)
-    data = {}
+    data: dict[str, Any] = {}
 
     # Record ID
     data["record_id"] = np.arange(n_rows)
@@ -110,9 +109,7 @@ def _generate_dataset(
             low = rng.uniform(-100, 0)
             data[f"num_{i:03d}"] = rng.uniform(low, low + rng.uniform(10, 200), size=n_rows)
         else:
-            data[f"num_{i:03d}"] = rng.exponential(
-                scale=rng.uniform(1, 10), size=n_rows
-            )
+            data[f"num_{i:03d}"] = rng.exponential(scale=rng.uniform(1, 10), size=n_rows)
 
     # Inject some nulls (realistic data quality)
     null_features = rng.choice(
@@ -141,8 +138,7 @@ def _generate_dataset(
         else:
             n_cats = rng.randint(3, 20)
             cats = [
-                "".join(rng.choice(list(string.ascii_uppercase), size=3))
-                for _ in range(n_cats)
+                "".join(rng.choice(list(string.ascii_uppercase), size=3)) for _ in range(n_cats)
             ]
             data[f"cat_{i:03d}"] = rng.choice(cats, size=n_rows)
 
@@ -157,17 +153,17 @@ def _generate_dataset(
     for i in range(n_text):
         lengths = rng.randint(5, 200, size=n_rows)
         data[f"text_len_{i:03d}"] = lengths
-        data[f"text_words_{i:03d}"] = (lengths / rng.uniform(4, 6, size=n_rows)).astype(
-            int
-        )
+        data[f"text_words_{i:03d}"] = (lengths / rng.uniform(4, 6, size=n_rows)).astype(int)
 
     # ── Target Variables ─────────────────────────────────────────────────
     if include_targets:
         # Binary target (classification) — correlated with some features
         logit = (
-            0.3 * (data["num_000"] - np.nanmean(data["num_000"]))
+            0.3
+            * (data["num_000"] - np.nanmean(data["num_000"]))
             / (np.nanstd(data["num_000"]) + 1e-8)
-            + 0.2 * (data["num_001"] - np.nanmean(data["num_001"]))
+            + 0.2
+            * (data["num_001"] - np.nanmean(data["num_001"]))
             / (np.nanstd(data["num_001"]) + 1e-8)
             + rng.normal(0, 1, size=n_rows)
         )
@@ -210,13 +206,12 @@ def _validate_data_quality(df: pd.DataFrame, dataset_name: str) -> None:
         checks_passed += 1
     else:
         checks_failed += 1
-        logger.warning(
-            f"[{dataset_name}] High null rate columns: {high_null_cols}"
-        )
+        logger.warning(f"[{dataset_name}] High null rate columns: {high_null_cols}")
 
     # Check 3: No constant columns
-    constant_cols = [c for c in df.select_dtypes(include=[np.number]).columns
-                     if df[c].nunique() <= 1]
+    constant_cols = [
+        c for c in df.select_dtypes(include=[np.number]).columns if df[c].nunique() <= 1
+    ]
     if not constant_cols:
         checks_passed += 1
     else:
@@ -232,6 +227,5 @@ def _validate_data_quality(df: pd.DataFrame, dataset_name: str) -> None:
 
     status = "✅" if checks_failed == 0 else "⚠️"
     logger.info(
-        f"{status} Data quality [{dataset_name}]: "
-        f"{checks_passed} passed, {checks_failed} failed"
+        f"{status} Data quality [{dataset_name}]: {checks_passed} passed, {checks_failed} failed"
     )
