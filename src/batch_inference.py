@@ -36,6 +36,7 @@ from src.utils import (
 
 # ── Ray Actor: Stateful Model Scorer ─────────────────────────────────────────
 
+
 @ray.remote
 class ModelScoringActor:
     """
@@ -53,10 +54,10 @@ class ModelScoringActor:
 
     def __init__(self, actor_id: int):
         self.actor_id = actor_id
-        self.model = None
-        self.model_id = None
-        self.model_type = None
-        self.selected_features = None
+        self.model: Any = None
+        self.model_id: str | None = None
+        self.model_type: str | None = None
+        self.selected_features: list[str] | None = None
         self.records_scored = 0
         self.models_completed = 0
 
@@ -92,12 +93,12 @@ class ModelScoringActor:
         The model is NOT loaded per batch — it persists in the actor.
         Only data moves; the model stays put.
         """
+        assert self.model_type is not None, "Model type not loaded"
         category = get_model_type_category(self.model_type)
 
         # Column pruning: only select features this model needs
-        available_features = [
-            f for f in self.selected_features if f in data_batch.columns
-        ]
+        assert self.selected_features is not None, "Selected features not loaded"
+        available_features = [f for f in self.selected_features if f in data_batch.columns]
         if not available_features:
             raise ValueError(
                 f"No matching features for {self.model_id}. "
@@ -110,6 +111,7 @@ class ModelScoringActor:
         result["model_id"] = self.model_id
         result["record_index"] = range(len(chunk))
 
+        assert self.model is not None, "Model not loaded"
         try:
             raw_predictions = self.model.predict(chunk)
 
@@ -153,6 +155,7 @@ class ModelScoringActor:
 
 
 # ── Main Inference Entry Point ───────────────────────────────────────────────
+
 
 def run_batch_inference(
     inference_features: pd.DataFrame,
@@ -225,11 +228,11 @@ def run_batch_inference(
 
     all_predictions = {}
     total_predictions = 0
-    total_time = 0
+    total_time = 0.0
 
     with timer(f"Batch Inference (Ray Actors) — {len(successful_models)} Models"):
         # Create actor pool
-        actors = [ModelScoringActor.remote(i) for i in range(num_actors)]
+        actors = [ModelScoringActor.remote(i) for i in range(num_actors)]  # type: ignore[attr-defined]
 
         # Build work queue: list of (model_id, result) pairs
         model_queue = list(successful_models.items())
@@ -243,17 +246,17 @@ def run_batch_inference(
                 model_idx += 1
 
                 # Load model into actor
-                ray.get(actor.load_model.remote(
-                    model_id=model_id,
-                    run_id=result["run_id"],
-                    model_type=result["model_type"],
-                    selected_features=result["selected_features"],
-                ))
+                ray.get(
+                    actor.load_model.remote(
+                        model_id=model_id,
+                        run_id=result["run_id"],
+                        model_type=result["model_type"],
+                        selected_features=result["selected_features"],
+                    )
+                )
 
                 # Launch scoring for all chunks
-                future = _score_all_chunks.remote(
-                    actor, chunk_refs, include_probs
-                )
+                future = _score_all_chunks.remote(actor, chunk_refs, include_probs)
                 active_tasks[future] = (actor, model_id)
 
         # Process completions and reassign actors
@@ -273,7 +276,8 @@ def run_batch_inference(
                     # Save results
                     output_file = f"{output_path}{model_id}_predictions.parquet"
                     save_parquet(
-                        predictions, output_file,
+                        predictions,
+                        output_file,
                         f"Predictions ({model_id})",
                     )
 
@@ -301,16 +305,16 @@ def run_batch_inference(
                     model_idx += 1
 
                     # Swap model in the existing actor (no actor recreation)
-                    ray.get(actor.load_model.remote(
-                        model_id=next_model_id,
-                        run_id=next_result["run_id"],
-                        model_type=next_result["model_type"],
-                        selected_features=next_result["selected_features"],
-                    ))
-
-                    future = _score_all_chunks.remote(
-                        actor, chunk_refs, include_probs
+                    ray.get(
+                        actor.load_model.remote(
+                            model_id=next_model_id,
+                            run_id=next_result["run_id"],
+                            model_type=next_result["model_type"],
+                            selected_features=next_result["selected_features"],
+                        )
                     )
+
+                    future = _score_all_chunks.remote(actor, chunk_refs, include_probs)
                     active_tasks[future] = (actor, next_model_id)
 
         # Collect actor stats
@@ -323,9 +327,7 @@ def run_batch_inference(
         )
 
     # ── Summary ──────────────────────────────────────────────────────────
-    avg_throughput = (
-        total_predictions / total_time if total_time > 0 else 0
-    )
+    avg_throughput = total_predictions / total_time if total_time > 0 else 0
     logger.info(
         f"[bold]Inference complete:[/] "
         f"{total_predictions:,} total predictions, "
@@ -353,17 +355,13 @@ def _score_all_chunks(
     chunk_results = []
     for chunk_ref in chunk_refs:
         chunk_data = ray.get(chunk_ref)
-        result = ray.get(
-            actor.score_batch.remote(chunk_data, include_probs)
-        )
+        result = ray.get(actor.score_batch.remote(chunk_data, include_probs))  # type: ignore[attr-defined]
         chunk_results.append(result)
 
     return pd.concat(chunk_results, ignore_index=True)
 
 
-def _partition_data(
-    df: pd.DataFrame, chunk_size: int
-) -> list[pd.DataFrame]:
+def _partition_data(df: pd.DataFrame, chunk_size: int) -> list[pd.DataFrame]:
     """Split a DataFrame into chunks for parallel scoring."""
     n_rows = len(df)
     chunks = []
@@ -398,9 +396,7 @@ def _generate_inference_summary(
 
         if "cluster_id" in preds.columns:
             row["n_clusters"] = preds["cluster_id"].nunique()
-            row["cluster_distribution"] = str(
-                preds["cluster_id"].value_counts().to_dict()
-            )
+            row["cluster_distribution"] = str(preds["cluster_id"].value_counts().to_dict())
 
         if "error" in preds.columns:
             row["error_count"] = preds["error"].notna().sum()

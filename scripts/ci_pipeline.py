@@ -30,9 +30,9 @@ ROOT = Path(__file__).resolve().parent.parent
 def _run(cmd: list[str], cwd: Path = ROOT, label: str = "") -> bool:
     """Run a command, print output, return True on success."""
     label = label or cmd[0]
-    print(f"\n{'='*60}")
+    print(f"\n{'=' * 60}")
     print(f"▶ {label}")
-    print(f"{'='*60}")
+    print(f"{'=' * 60}")
     start = time.time()
     result = subprocess.run(cmd, cwd=cwd, capture_output=False, text=True)
     elapsed = time.time() - start
@@ -44,8 +44,7 @@ def _run(cmd: list[str], cwd: Path = ROOT, label: str = "") -> bool:
 def stage_install() -> bool:
     """Validate dependencies are installable."""
     return _run(
-        [sys.executable, "-m", "pip", "install", "-r", "requirements.txt",
-         "--quiet", "--dry-run"],
+        [sys.executable, "-m", "pip", "install", "-r", "requirements.txt", "--quiet", "--dry-run"],
         label="Install dependencies (dry-run)",
     )
 
@@ -54,13 +53,21 @@ def stage_lint() -> bool:
     """Run ruff format check and ruff lint."""
     ok = True
     ok &= _run(
-        [sys.executable, "-m", "ruff", "format", "--check",
-         "src/", "tests/", "orchestration/", "scripts/"],
+        [
+            sys.executable,
+            "-m",
+            "ruff",
+            "format",
+            "--check",
+            "src/",
+            "tests/",
+            "orchestration/",
+            "scripts/",
+        ],
         label="ruff format check",
     )
     ok &= _run(
-        [sys.executable, "-m", "ruff", "check",
-         "src/", "tests/", "orchestration/", "scripts/"],
+        [sys.executable, "-m", "ruff", "check", "src/", "tests/", "orchestration/", "scripts/"],
         label="ruff lint",
     )
     return ok
@@ -77,8 +84,16 @@ def stage_typecheck() -> bool:
 def stage_test() -> bool:
     """Run pytest with coverage."""
     return _run(
-        [sys.executable, "-m", "pytest", "tests/", "-v", "--tb=short",
-         "--cov=src", "--cov-report=term-missing"],
+        [
+            sys.executable,
+            "-m",
+            "pytest",
+            "tests/",
+            "-v",
+            "--tb=short",
+            "--cov=src",
+            "--cov-report=term-missing",
+        ],
         label="pytest",
     )
 
@@ -102,15 +117,18 @@ def stage_terraform() -> bool:
     ok = True
     ok &= _run(
         ["terraform", "init", "-backend=false"],
-        cwd=tf_dir, label="terraform init",
+        cwd=tf_dir,
+        label="terraform init",
     )
     ok &= _run(
         ["terraform", "validate"],
-        cwd=tf_dir, label="terraform validate",
+        cwd=tf_dir,
+        label="terraform validate",
     )
     ok &= _run(
         ["terraform", "fmt", "-check", "-diff"],
-        cwd=tf_dir, label="terraform fmt check",
+        cwd=tf_dir,
+        label="terraform fmt check",
     )
     return ok
 
@@ -136,14 +154,19 @@ def stage_deploy(target: str = "dev") -> bool:
 
 def main():
     parser = argparse.ArgumentParser(description="MLOps CI/CD Pipeline")
-    parser.add_argument("--stage", choices=["all", "install", "lint", "typecheck",
-                                            "test", "build", "terraform", "deploy"],
-                        default="all", help="Run a single stage")
-    parser.add_argument("--skip-deploy", action="store_true",
-                        help="Skip the deploy stage")
-    parser.add_argument("--deploy-target", default="dev",
-                        choices=["dev", "staging", "prod"],
-                        help="Databricks deployment target")
+    parser.add_argument(
+        "--stage",
+        choices=["all", "install", "lint", "typecheck", "test", "build", "terraform", "deploy"],
+        default="all",
+        help="Run a single stage",
+    )
+    parser.add_argument("--skip-deploy", action="store_true", help="Skip the deploy stage")
+    parser.add_argument(
+        "--deploy-target",
+        default="dev",
+        choices=["dev", "staging", "prod"],
+        help="Databricks deployment target",
+    )
     args = parser.parse_args()
 
     if args.stage != "all":
@@ -166,9 +189,9 @@ def main():
         else:
             results[stage_name] = fn()
 
-    print(f"\n{'='*60}")
+    print(f"\n{'=' * 60}")
     print("CI/CD Pipeline — Summary")
-    print(f"{'='*60}")
+    print(f"{'=' * 60}")
     all_ok = True
     for stage_name, ok in results.items():
         status = "✅" if ok else "❌"
