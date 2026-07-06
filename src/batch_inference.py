@@ -72,11 +72,17 @@ class ModelScoringActor:
             self.models_completed += 1
 
         model_uri = f"runs:/{run_id}/model"
+        logger.info(
+            f"  [Actor {self.actor_id}] Loading model '{model_id}' from MLflow registry ({model_uri})..."
+        )
         self.model = mlflow.pyfunc.load_model(model_uri)
         self.model_id = model_id
         self.model_type = model_type
         self.selected_features = selected_features
         self.records_scored = 0
+        logger.info(
+            f"  [Actor {self.actor_id}] Successfully loaded model '{model_id}' into worker memory."
+        )
         return f"Actor {self.actor_id}: loaded {model_id}"
 
     def score_batch(
@@ -109,6 +115,9 @@ class ModelScoringActor:
         result["record_index"] = range(len(chunk))
 
         assert self.model is not None, "Model not loaded"
+        logger.info(
+            f"  [Actor {self.actor_id}] Scoring batch chunk of size {len(chunk):,} for model '{self.model_id}'..."
+        )
         try:
             raw_predictions = self.model.predict(chunk)
 

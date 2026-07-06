@@ -88,6 +88,10 @@ def _generate_dataset(
     dataset_name: str,
 ) -> pd.DataFrame:
     """Generate a synthetic dataset with multiple feature types."""
+    logger.info(
+        f"[{dataset_name}] Generating {n_rows:,} synthetic records with seed {seed}: "
+        f"{n_numeric} numeric, {n_categorical} categorical, {n_temporal} temporal, {n_text} text features..."
+    )
     rng = np.random.RandomState(seed)
     data: dict[str, Any] = {}
 
@@ -193,39 +197,53 @@ def _validate_data_quality(df: pd.DataFrame, dataset_name: str) -> None:
     checks_failed = 0
 
     # Check 1: No duplicate record IDs
+    logger.info(f"[{dataset_name}] Check 1: Validating unique record IDs...")
     if df["record_id"].nunique() == len(df):
         checks_passed += 1
+        logger.info(f"[{dataset_name}]   Passed: all record IDs are unique.")
     else:
         checks_failed += 1
-        logger.warning(f"[{dataset_name}] Duplicate record_ids detected!")
+        logger.warning(f"[{dataset_name}]   Failed: duplicate record_ids detected!")
 
     # Check 2: Null rates within acceptable range
+    logger.info(f"[{dataset_name}] Check 2: Scanning null rates across columns...")
     null_rates = df.isnull().mean()
     high_null_cols = null_rates[null_rates > 0.1].index.tolist()
     if not high_null_cols:
         checks_passed += 1
+        logger.info(
+            f"[{dataset_name}]   Passed: all column null rates are within acceptable limits (< 10%)."
+        )
     else:
         checks_failed += 1
-        logger.warning(f"[{dataset_name}] High null rate columns: {high_null_cols}")
+        logger.warning(
+            f"[{dataset_name}]   Failed: high null rate (> 10%) columns: {high_null_cols}"
+        )
 
     # Check 3: No constant columns
+    logger.info(f"[{dataset_name}] Check 3: Scanning for constant numeric columns...")
     constant_cols = [
         c for c in df.select_dtypes(include=[np.number]).columns if df[c].nunique() <= 1
     ]
     if not constant_cols:
         checks_passed += 1
+        logger.info(f"[{dataset_name}]   Passed: no constant numeric columns found.")
     else:
         checks_failed += 1
-        logger.warning(f"[{dataset_name}] Constant columns: {constant_cols}")
+        logger.warning(
+            f"[{dataset_name}]   Failed: constant numeric columns detected: {constant_cols}"
+        )
 
     # Check 4: Row count within expected range
+    logger.info(f"[{dataset_name}] Check 4: Verifying dataset is non-empty...")
     if len(df) > 0:
         checks_passed += 1
+        logger.info(f"[{dataset_name}]   Passed: dataset contains {len(df):,} records.")
     else:
         checks_failed += 1
-        logger.error(f"[{dataset_name}] Empty DataFrame!")
+        logger.error(f"[{dataset_name}]   Failed: Empty DataFrame!")
 
     status = "✅" if checks_failed == 0 else "⚠️"
     logger.info(
-        f"{status} Data quality [{dataset_name}]: {checks_passed} passed, {checks_failed} failed"
+        f"{status} Data quality check complete for [{dataset_name}]: {checks_passed} passed, {checks_failed} failed"
     )
