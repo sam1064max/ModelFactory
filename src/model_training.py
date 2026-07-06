@@ -16,7 +16,7 @@ In production (Databricks), this uses:
 """
 
 import warnings
-from typing import Any, Optional
+from typing import Any
 
 import mlflow
 import mlflow.sklearn
@@ -39,7 +39,7 @@ from sklearn.metrics import (
     roc_auc_score,
     silhouette_score,
 )
-from sklearn.model_selection import StratifiedKFold, KFold
+from sklearn.model_selection import KFold, StratifiedKFold
 
 from src.feature_engineering import FeatureEngineeringPipeline
 from src.utils import (
@@ -268,7 +268,7 @@ def _train_single_model(
             # Register model
             model_uri = f"runs:/{run.info.run_id}/model"
             try:
-                mv = mlflow.register_model(model_uri, model_id)
+                mlflow.register_model(model_uri, model_id)
             except Exception:
                 pass  # Registration may fail in local mode
 
@@ -292,7 +292,7 @@ def _train_single_model(
 
 def _run_ray_tune_hpo(
     X: pd.DataFrame,
-    y: Optional[pd.Series],
+    y: pd.Series | None,
     model_type: str,
     hp_space: dict,
     max_trials: int,
@@ -528,7 +528,7 @@ def _evaluate_clustering(model: Any, X: pd.DataFrame) -> dict:
 
             metrics["silhouette_score"] = float(silhouette_score(X_sample, labels_sample))
             metrics["calinski_harabasz"] = float(calinski_harabasz_score(X, labels))
-        except Exception as e:
+        except Exception:
             metrics["silhouette_score"] = 0.0
 
     metrics["inertia"] = float(model.inertia_)

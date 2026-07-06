@@ -14,9 +14,8 @@ In production (Databricks), this uses:
   - Delta Lake partition-overwrite for idempotent writes
 """
 
-import os
 import time
-from typing import Any, Optional
+from typing import Any
 
 import mlflow
 import mlflow.pyfunc
@@ -27,12 +26,10 @@ import ray
 from src.feature_engineering import FeatureEngineeringPipeline
 from src.utils import (
     get_model_type_category,
-    load_parquet,
     logger,
     save_parquet,
     timer,
 )
-
 
 # ── Ray Actor: Stateful Model Scorer ─────────────────────────────────────────
 
