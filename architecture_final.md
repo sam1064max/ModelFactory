@@ -1,8 +1,8 @@
 # MLOps Platform Architecture: Scalable Model Training & Inference on Databricks
 
-> **Design for**: 10,000 models · 750M-record inference per model · < 24-hour SLA  
-> **Platform**: Databricks Lakehouse · Unity Catalog · Delta Lake · MLflow  
-> **Author**: Sushant Shambharkar 
+> **Design for**: 10,000 models · 750M-record inference per model · < 24-hour SLA
+> **Platform**: Databricks Lakehouse · Unity Catalog · Delta Lake · MLflow
+> **Author**: System Design Case Study
 
 ---
 

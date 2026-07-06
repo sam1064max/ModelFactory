@@ -378,9 +378,9 @@ def _run_ray_tune_hpo(
 
     # Extract best result
     best_result = tune_results.get_best_result(metric=metric, mode="max")
-    best_trial_params = best_result.config
-    if best_trial_params is None:
-        best_trial_params = {}
+    assert best_result is not None, "Ray Tune returned no best result"
+    assert best_result.config is not None
+    best_trial_params: dict[str, Any] = best_result.config
 
     # Ensure int types in best params
     for k in [

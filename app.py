@@ -10,23 +10,19 @@ Usage:
 
 from __future__ import annotations
 
-import os
-
-# Enable MLflow local file-store tracking in v3+
-os.environ["MLFLOW_ALLOW_FILE_STORE"] = "true"
-
 import threading
 import time
+from queue import Queue
+from typing import Any
 
 import streamlit as st
-from streamlit.runtime.scriptrunner import add_script_run_ctx
 
 from frontend.pipeline_runner import (
-    STAGE_DONE,
-    STAGE_FAILED,
+    STAGES,
     STAGE_LABELS,
     STAGE_RUNNING,
-    STAGES,
+    STAGE_DONE,
+    STAGE_FAILED,
     StreamlitPipelineRunner,
 )
 
@@ -52,7 +48,6 @@ st.markdown(
 
 
 # ── Session State ────────────────────────────────────────────────────────────
-
 
 def init_state() -> None:
     if "runner" not in st.session_state:
@@ -81,7 +76,6 @@ init_state()
 
 
 # ── Pipeline Callbacks ───────────────────────────────────────────────────────
-
 
 def _on_log(msg: str) -> None:
     st.session_state.logs.append(msg)
@@ -137,27 +131,19 @@ with st.sidebar:
     with st.container(border=True):
         st.session_state.override_rows = st.number_input(
             "Training rows",
-            min_value=100,
-            max_value=50000,
-            value=5000,
-            step=500,
+            min_value=100, max_value=50000, value=5000, step=500,
             disabled=st.session_state.pipeline_running,
             help="Rows of synthetic training data to generate.",
         )
         st.session_state.override_infer = st.number_input(
             "Inference rows",
-            min_value=50,
-            max_value=10000,
-            value=1000,
-            step=100,
+            min_value=50, max_value=10000, value=1000, step=100,
             disabled=st.session_state.pipeline_running,
             help="Rows of synthetic inference data.",
         )
         st.session_state.override_models = st.slider(
             "Number of models",
-            min_value=1,
-            max_value=12,
-            value=6,
+            min_value=1, max_value=12, value=6,
             disabled=st.session_state.pipeline_running,
             help="Models to train (limited subset for faster demo).",
         )
@@ -184,27 +170,19 @@ with st.sidebar:
         st.session_state.results = None
 
         thread = threading.Thread(target=_run_pipeline, daemon=True)
-        add_script_run_ctx(thread)
         thread.start()
         st.rerun()
 
     if st.session_state.pipeline_done:
         if st.button("🔄 Reset", use_container_width=True):
-            for key in [
-                "pipeline_running",
-                "pipeline_done",
-                "results",
-                "logs",
-                "stage_status",
-                "stage_data",
-                "stage_times",
-                "error",
-                "runner",
-            ]:
+            for key in ["pipeline_running", "pipeline_done", "results",
+                        "logs", "stage_status", "stage_data", "stage_times",
+                        "error", "runner"]:
                 if key in st.session_state:
                     if key in ("stage_status", "stage_data"):
                         st.session_state[key] = {
-                            s: {} if key == "stage_data" else "idle" for s in STAGES
+                            s: {} if key == "stage_data" else "idle"
+                            for s in STAGES
                         }
                     elif key == "logs":
                         st.session_state[key] = []
@@ -307,15 +285,15 @@ if st.session_state.results:
         for model_name, result in training_results.items():
             status = result.get("status", "unknown")
             best_metrics = result.get("best_metrics", {})
-            metric_str = "; ".join(f"{k}={v:.4f}" for k, v in best_metrics.items())
-            model_rows.append(
-                {
-                    "Model": model_name,
-                    "Status": "✅" if status == "success" else "❌",
-                    "Best Params": str(result.get("best_params", {})),
-                    "Metrics": metric_str or "-",
-                }
+            metric_str = "; ".join(
+                f"{k}={v:.4f}" for k, v in best_metrics.items()
             )
+            model_rows.append({
+                "Model": model_name,
+                "Status": "✅" if status == "success" else "❌",
+                "Best Params": str(result.get("best_params", {})),
+                "Metrics": metric_str or "-",
+            })
         st.dataframe(model_rows, use_container_width=True, hide_index=True)
 
     # ── Monitoring Details ──────────────────────────────────────────────
@@ -328,14 +306,12 @@ if st.session_state.results:
         with tab1:
             drift_rows = []
             for feat, info in drift.items():
-                drift_rows.append(
-                    {
-                        "Feature": feat,
-                        "Drifted": "⚠️" if info.get("is_drifted", False) else "✅",
-                        "PSI": f"{info.get('psi', 0):.4f}",
-                        "P-Value": f"{info.get('ks_pvalue', 0):.4f}",
-                    }
-                )
+                drift_rows.append({
+                    "Feature": feat,
+                    "Drifted": "⚠️" if info.get("is_drifted", False) else "✅",
+                    "PSI": f"{info.get('psi', 0):.4f}",
+                    "P-Value": f"{info.get('ks_pvalue', 0):.4f}",
+                })
             if drift_rows:
                 st.dataframe(drift_rows, use_container_width=True, hide_index=True)
         with tab2:
