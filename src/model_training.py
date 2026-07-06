@@ -96,7 +96,7 @@ def train_all_models(
         # Launch all models as Ray remote tasks for parallel training
         futures = {}
         for model_config in models:
-            future = _train_single_model_remote.remote(  # type: ignore[call-arg]
+            future = _train_single_model_remote.remote(
                 model_config=model_config,
                 train_features_ref=train_features_ref,
                 train_df_ref=train_df_ref,
@@ -369,7 +369,7 @@ def _run_ray_tune_hpo(
             scheduler=scheduler,
             num_samples=num_samples,
         ),
-        run_config=ray.train.RunConfig(  # type: ignore[arg-type]
+        run_config=ray.train.RunConfig(
             verbose=0,  # Suppress Ray Tune output (we log via MLflow)
         ),
     )
@@ -379,8 +379,6 @@ def _run_ray_tune_hpo(
     # Extract best result
     best_result = tune_results.get_best_result(metric=metric, mode="max")
     best_trial_params = best_result.config
-    if best_trial_params is None:
-        best_trial_params = {}
 
     # Ensure int types in best params
     for k in [
