@@ -10,6 +10,11 @@ Usage:
 
 from __future__ import annotations
 
+import os
+
+# Enable MLflow local file-store tracking in v3+
+os.environ["MLFLOW_ALLOW_FILE_STORE"] = "true"
+
 import threading
 import time
 
