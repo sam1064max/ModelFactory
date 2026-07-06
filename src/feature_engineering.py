@@ -14,26 +14,21 @@ In production (Databricks), this would use:
   - Point-in-time lookups for training data assembly
 """
 
-from typing import Optional
-
 import numpy as np
 import pandas as pd
 from sklearn.feature_selection import (
     SelectKBest,
     f_classif,
     f_regression,
-    mutual_info_classif,
 )
 from sklearn.preprocessing import (
     KBinsDiscretizer,
     LabelEncoder,
-    PolynomialFeatures,
     StandardScaler,
 )
 
 from src.utils import (
     get_model_type_category,
-    load_parquet,
     logger,
     save_parquet,
     timer,
@@ -54,7 +49,7 @@ class FeatureEngineeringPipeline:
         self.feature_config = config["features"]
         self.scalers: dict[str, StandardScaler] = {}
         self.encoders: dict[str, LabelEncoder] = {}
-        self.binner: Optional[KBinsDiscretizer] = None
+        self.binner: KBinsDiscretizer | None = None
         self.numeric_columns: list[str] = []
         self.categorical_columns: list[str] = []
         self.temporal_columns: list[str] = []
@@ -85,7 +80,7 @@ class FeatureEngineeringPipeline:
     def select_features(
         self,
         df: pd.DataFrame,
-        target: Optional[pd.Series],
+        target: pd.Series | None,
         model_type: str,
         max_features: int = 30,
     ) -> tuple[pd.DataFrame, list[str]]:

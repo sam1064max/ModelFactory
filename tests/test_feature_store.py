@@ -9,7 +9,7 @@ Tests the LocalFeatureStore implementation for:
   - Cross-session catalog persistence (JSON)
 """
 
-import json
+import sys
 import tempfile
 from pathlib import Path
 
@@ -17,13 +17,11 @@ import numpy as np
 import pandas as pd
 import pytest
 
-import sys
-
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 from src.feature_store import (
-    LocalFeatureStore,
     DatabricksFeatureStore,
+    LocalFeatureStore,
     create_feature_store,
 )
 
