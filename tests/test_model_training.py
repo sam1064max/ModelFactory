@@ -147,7 +147,7 @@ class TestModelTraining:
 
             mlflow.log_param("max_depth", 3)
             mlflow.log_metric("accuracy", 0.95)
-            mlflow.xgboost.log_model(model, artifact_path="model")
+            mlflow.xgboost.log_model(model, artifact_path="model", pip_requirements=["xgboost"])
 
         # Verify run was logged
         client = mlflow.tracking.MlflowClient(tracking_uri)
