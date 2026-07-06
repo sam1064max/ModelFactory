@@ -356,11 +356,15 @@ def _run_ray_tune_hpo(
         else:
             metrics, _ = _cross_validate(model, X, y, cv_folds, category)
 
+        score = metrics.get(metric, 0.0)
+        logger.info(f"    [Ray Trial] params={params} -> {metric}={score:.4f}")
+
         # Report metrics back to Ray Tune
         tune.report(**metrics)
 
     # Run Ray Tune
     num_samples = min(max_trials, _count_combinations(hp_space))
+    logger.info(f"  Launching {num_samples} HPO trials on Ray clusters...")
 
     tuner = tune.Tuner(
         _trainable,
@@ -370,7 +374,7 @@ def _run_ray_tune_hpo(
             num_samples=num_samples,
         ),
         run_config=ray.train.RunConfig(  # type: ignore[arg-type]
-            verbose=0,  # Suppress Ray Tune output (we log via MLflow)
+            verbose=1,  # Output Ray Tune summary table
         ),
     )
 

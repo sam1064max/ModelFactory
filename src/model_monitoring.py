@@ -208,6 +208,12 @@ def _compute_feature_drift(
 
         # Overall drift flag
         result["is_drifted"] = result.get("psi_drifted", False) or result.get("ks_drifted", False)
+        if result["is_drifted"]:
+            logger.warning(
+                f"  ⚠️ Drift detected in feature '{col}': "
+                f"PSI={result.get('psi', 0):.4f} (drift={result.get('psi_drifted')}), "
+                f"KS p-value={result.get('ks_pvalue', 0):.4f} (drift={result.get('ks_drifted')})"
+            )
 
         # Distribution stats
         result["ref_mean"] = float(np.mean(ref_vals))
@@ -321,6 +327,8 @@ def _compute_data_quality(df: pd.DataFrame, null_threshold: float = 0.1) -> dict
 
         result["has_issue"] = len(issues) > 0
         result["issues"] = issues
+        if result["has_issue"]:
+            logger.warning(f"  ⚠️ Data quality issue in feature '{col}': {', '.join(issues)}")
 
         quality[col] = result
 

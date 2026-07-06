@@ -172,21 +172,32 @@ class FeatureEngineeringPipeline:
             features["record_id"] = df["record_id"]
 
         # 1. Numeric transforms
+        logger.info("Executing numeric feature transformations...")
         numeric_features = self._transform_numeric(df, fit)
+        logger.info(f"  Numeric transformation done: generated {len(numeric_features)} columns.")
         features.update(numeric_features)
 
         # 2. Categorical transforms
+        logger.info("Executing categorical encoding transformations...")
         categorical_features = self._transform_categorical(df, fit)
+        logger.info(
+            f"  Categorical transformations done: generated {len(categorical_features)} columns."
+        )
         features.update(categorical_features)
 
         # 3. Temporal transforms
+        logger.info("Executing temporal feature extractions...")
         temporal_features = self._transform_temporal(df)
+        logger.info(f"  Temporal transformations done: generated {len(temporal_features)} columns.")
         features.update(temporal_features)
 
         result = pd.DataFrame(features)
 
         # Drop non-feature columns for the feature matrix
         feature_cols = [c for c in result.columns if c != "record_id"]
+        logger.info(
+            f"Transforms applied. Constructed total feature set shape: {result.shape[0]:,} rows × {len(feature_cols)} features."
+        )
         return result[feature_cols]
 
     def _transform_numeric(self, df: pd.DataFrame, fit: bool) -> dict[str, np.ndarray]:
