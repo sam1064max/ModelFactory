@@ -9,17 +9,16 @@ Tests the feature transformation pipeline for correctness:
   - Pipeline is idempotent (fit-transform consistency)
 """
 
+import sys
+from pathlib import Path
+
 import numpy as np
 import pandas as pd
 import pytest
 
-import sys
-from pathlib import Path
-
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 from src.feature_engineering import FeatureEngineeringPipeline
-from src.utils import load_config
 
 
 @pytest.fixture

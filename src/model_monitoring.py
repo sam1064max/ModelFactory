@@ -15,9 +15,8 @@ In production (Databricks), this would use:
 """
 
 import json
-import warnings
 from pathlib import Path
-from typing import Any, Optional
+from typing import Any
 
 import numpy as np
 import pandas as pd
@@ -27,11 +26,11 @@ from src.utils import logger, save_parquet, timer
 
 # Try importing evidently (optional dependency for rich reports)
 try:
-    from evidently import ColumnMapping
+    from evidently import ColumnMapping  # noqa: F401
     from evidently.metric_preset import (
         DataDriftPreset,
         DataQualityPreset,
-        TargetDriftPreset,
+        TargetDriftPreset,  # noqa: F401
     )
     from evidently.report import Report
 
@@ -246,7 +245,7 @@ def _calculate_psi(reference: np.ndarray, current: np.ndarray, n_bins: int = 10)
 
     # PSI formula
     psi = np.sum((cur_pct - ref_pct) * np.log(cur_pct / ref_pct))
-    return psi
+    return float(psi)
 
 
 def _analyze_prediction_distribution(preds_df: pd.DataFrame, model_id: str) -> dict:

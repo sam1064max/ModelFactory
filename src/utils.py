@@ -46,7 +46,7 @@ logger = setup_logger("mlops_pipeline")
 def load_config(config_path: str = "config/pipeline_config.yaml") -> dict[str, Any]:
     """Load pipeline configuration from YAML file."""
     path = _resolve_path(config_path)
-    with open(path, "r") as f:
+    with open(path) as f:
         config = yaml.safe_load(f)
     logger.info(f"Loaded config from [bold cyan]{path}[/]")
     return config  # type: ignore[no-any-return]
@@ -57,7 +57,7 @@ def load_model_registry(
 ) -> dict[str, Any]:
     """Load model registry configuration from YAML file."""
     path = _resolve_path(registry_path)
-    with open(path, "r") as f:
+    with open(path) as f:
         registry = yaml.safe_load(f)
     num_models = len(registry.get("models", []))
     logger.info(f"Loaded model registry from [bold cyan]{path}[/] ({num_models} models)")

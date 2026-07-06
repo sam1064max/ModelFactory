@@ -33,8 +33,8 @@ Config format (in model_registry.yaml):
 
 from __future__ import annotations
 
-from collections import defaultdict, deque
-from typing import Any, Optional
+from collections import deque
+from typing import Any
 
 from src.utils import logger
 
@@ -58,7 +58,7 @@ class ModelDependencyGraph:
         self._models = {m["model_id"]: m for m in models}
         self._graph: dict[str, set[str]] = {}
         self._build_graph()
-        self._topo_order: Optional[list[str]] = None
+        self._topo_order: list[str] | None = None
 
     # ── Public API ─────────────────────────────────────────────────────────
 
@@ -192,7 +192,7 @@ class ModelDependencyGraph:
 
         logger.info(
             f"Model DAG: {len(layers)} execution layers "
-            f"({', '.join(str(len(l)) for l in layers)} models each)"
+            f"({', '.join(str(len(layer)) for layer in layers)} models each)"
         )
         return layers
 
