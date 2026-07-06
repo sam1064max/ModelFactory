@@ -10,6 +10,7 @@ Tests compliance module for:
 """
 
 import json
+import sys
 import tempfile
 from pathlib import Path
 
@@ -17,23 +18,17 @@ import numpy as np
 import pandas as pd
 import pytest
 
-import sys
-
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 from src.compliance import (
     AuditLogger,
-    AuditEntry,
-    DataSnapshot,
     PIICategory,
     SnapshotManager,
     build_erasure_plan,
     detect_pii_columns,
     generate_compliance_report,
     mask_pii_columns,
-    DataSnapshot,
 )
-
 
 # ── Fixtures ──────────────────────────────────────────────────────────────────
 

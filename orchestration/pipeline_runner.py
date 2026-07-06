@@ -34,11 +34,10 @@ from src.feature_engineering import run_feature_engineering
 from src.model_monitoring import run_monitoring
 from src.model_training import train_all_models
 from src.utils import (
+    console,
     load_config,
     load_model_registry,
     logger,
-    timer,
-    console,
 )
 
 

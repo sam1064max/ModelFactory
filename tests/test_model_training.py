@@ -4,15 +4,13 @@ Unit Tests — Model Training
 Tests model creation, training, evaluation, and MLflow integration.
 """
 
+import sys
+from pathlib import Path
+
+import mlflow
 import numpy as np
 import pandas as pd
 import pytest
-import mlflow
-import tempfile
-import os
-
-import sys
-from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
@@ -160,8 +158,8 @@ class TestModelTraining:
 
     def test_cross_validation_scores(self, classification_data):
         """Cross-validation should produce reasonable AUC scores."""
-        from sklearn.model_selection import cross_val_score
         import xgboost as xgb
+        from sklearn.model_selection import cross_val_score
 
         X, y = classification_data
         model = xgb.XGBClassifier(

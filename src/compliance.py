@@ -24,20 +24,18 @@ This module provides the policy definition and local/CI compliance validation.
 
 from __future__ import annotations
 
-import hashlib
 import json
 import re
 from collections import defaultdict
-from dataclasses import dataclass, field, asdict
+from dataclasses import asdict, dataclass, field
 from datetime import datetime, timezone
 from enum import Enum
 from pathlib import Path
-from typing import Any, Optional
+from typing import Any
 
 import pandas as pd
 
 from src.utils import logger
-
 
 # ── Enums & Data Classes ─────────────────────────────────────────────────────
 
@@ -74,10 +72,10 @@ class AuditEntry:
     timestamp: str
     operation: str  # e.g., "training", "inference", "data_access"
     actor: str  # user or service principal
-    model_id: Optional[str] = None
-    dataset_hash: Optional[str] = None
-    feature_table: Optional[str] = None
-    target_table: Optional[str] = None
+    model_id: str | None = None
+    dataset_hash: str | None = None
+    feature_table: str | None = None
+    target_table: str | None = None
     records_affected: int = 0
     status: str = "success"  # success | failure
     details: dict[str, Any] = field(default_factory=dict)
@@ -102,11 +100,11 @@ class DataSnapshot:
     snapshot_id: str
     created_at: str
     dataset_hash: str
-    delta_version: Optional[int] = None
+    delta_version: int | None = None
     feature_table_versions: dict[str, str] = field(default_factory=dict)
-    git_commit_sha: Optional[str] = None
-    mlflow_run_id: Optional[str] = None
-    model_config_version: Optional[str] = None
+    git_commit_sha: str | None = None
+    mlflow_run_id: str | None = None
+    model_config_version: str | None = None
     num_rows: int = 0
     num_features: int = 0
     classification: str = "internal"
@@ -181,7 +179,7 @@ def detect_pii_columns(df: pd.DataFrame) -> dict[str, list[PIICategory]]:
 
 def mask_pii_columns(
     df: pd.DataFrame,
-    pii_map: Optional[dict[str, list[PIICategory]]] = None,
+    pii_map: dict[str, list[PIICategory]] | None = None,
 ) -> pd.DataFrame:
     """
     Return a copy of the DataFrame with PII columns masked.
@@ -267,13 +265,13 @@ class AuditLogger:
         self,
         operation: str,
         actor: str = "pipeline",
-        model_id: Optional[str] = None,
-        dataset_hash: Optional[str] = None,
-        feature_table: Optional[str] = None,
-        target_table: Optional[str] = None,
+        model_id: str | None = None,
+        dataset_hash: str | None = None,
+        feature_table: str | None = None,
+        target_table: str | None = None,
         records_affected: int = 0,
         status: str = "success",
-        details: Optional[dict[str, Any]] = None,
+        details: dict[str, Any] | None = None,
     ) -> AuditEntry:
         """Record an audit entry."""
         entry = AuditEntry(
@@ -298,10 +296,10 @@ class AuditLogger:
 
     def query(
         self,
-        operation: Optional[str] = None,
-        model_id: Optional[str] = None,
-        actor: Optional[str] = None,
-        status: Optional[str] = None,
+        operation: str | None = None,
+        model_id: str | None = None,
+        actor: str | None = None,
+        status: str | None = None,
     ) -> list[AuditEntry]:
         """Filter audit log by criteria."""
         results = self._entries
@@ -357,9 +355,9 @@ class SnapshotManager:
         dataset_hash: str,
         num_rows: int,
         num_features: int,
-        feature_table_versions: Optional[dict[str, str]] = None,
-        mlflow_run_id: Optional[str] = None,
-        model_config_version: Optional[str] = None,
+        feature_table_versions: dict[str, str] | None = None,
+        mlflow_run_id: str | None = None,
+        model_config_version: str | None = None,
         classification: str = "internal",
         retention_days: int = 365,
     ) -> DataSnapshot:
@@ -386,7 +384,7 @@ class SnapshotManager:
         )
         return snapshot
 
-    def get_snapshot(self, snapshot_id: str) -> Optional[DataSnapshot]:
+    def get_snapshot(self, snapshot_id: str) -> DataSnapshot | None:
         """Load a snapshot by ID."""
         path = self._dir / f"{snapshot_id}.json"
         if not path.exists():
@@ -411,7 +409,7 @@ class SnapshotManager:
             json.dump(asdict(snapshot), f, indent=2, default=str)
 
     @staticmethod
-    def _get_git_sha() -> Optional[str]:
+    def _get_git_sha() -> str | None:
         """Try to get the current Git commit SHA."""
         try:
             import subprocess
@@ -435,8 +433,8 @@ class SnapshotManager:
 def generate_compliance_report(
     df: pd.DataFrame,
     dataset_name: str = "unnamed",
-    snapshots: Optional[list[DataSnapshot]] = None,
-    audit_logger: Optional[AuditLogger] = None,
+    snapshots: list[DataSnapshot] | None = None,
+    audit_logger: AuditLogger | None = None,
 ) -> dict[str, Any]:
     """
     Generate a compliance report for a dataset.

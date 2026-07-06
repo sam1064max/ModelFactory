@@ -32,18 +32,15 @@ from __future__ import annotations
 
 import hashlib
 import json
-import os
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from datetime import datetime
 from pathlib import Path
-from typing import Any, Optional
+from typing import Any
 
-import numpy as np
 import pandas as pd
 
 from src.utils import logger
-
 
 # ── Data Classes ──────────────────────────────────────────────────────────────
 
@@ -84,7 +81,7 @@ class BaseFeatureStore(ABC):
         self,
         name: str,
         df: pd.DataFrame,
-        version: Optional[str] = None,
+        version: str | None = None,
         description: str = "",
     ) -> FeatureTableMeta:
         """Snapshot a feature DataFrame to the store under *name*."""
@@ -94,10 +91,10 @@ class BaseFeatureStore(ABC):
     def get_features(
         self,
         table_name: str,
-        entity_keys: Optional[list[str]] = None,
-        timestamp_col: Optional[str] = None,
-        as_of: Optional[datetime] = None,
-        version: Optional[str] = None,
+        entity_keys: list[str] | None = None,
+        timestamp_col: str | None = None,
+        as_of: datetime | None = None,
+        version: str | None = None,
     ) -> pd.DataFrame:
         """Retrieve features by entity key and (optionally) point-in-time."""
         ...
@@ -108,7 +105,7 @@ class BaseFeatureStore(ABC):
         entity_df: pd.DataFrame,
         feature_tables: list[str],
         entity_key_column: str = "record_id",
-        timestamp_column: Optional[str] = None,
+        timestamp_column: str | None = None,
     ) -> FeatureSet:
         """
         Assemble a training set with point-in-time correct feature lookups.
@@ -160,7 +157,7 @@ class LocalFeatureStore(BaseFeatureStore):
         self,
         name: str,
         df: pd.DataFrame,
-        version: Optional[str] = None,
+        version: str | None = None,
         description: str = "",
     ) -> FeatureTableMeta:
         version = version or datetime.now().strftime("v%Y%m%d_%H%M%S")
@@ -195,10 +192,10 @@ class LocalFeatureStore(BaseFeatureStore):
     def get_features(
         self,
         table_name: str,
-        entity_keys: Optional[list[str]] = None,
-        timestamp_col: Optional[str] = None,
-        as_of: Optional[datetime] = None,
-        version: Optional[str] = None,
+        entity_keys: list[str] | None = None,
+        timestamp_col: str | None = None,
+        as_of: datetime | None = None,
+        version: str | None = None,
     ) -> pd.DataFrame:
         meta = self._catalog.get(table_name)
         if meta is None:
@@ -224,7 +221,7 @@ class LocalFeatureStore(BaseFeatureStore):
         entity_df: pd.DataFrame,
         feature_tables: list[str],
         entity_key_column: str = "record_id",
-        timestamp_column: Optional[str] = None,
+        timestamp_column: str | None = None,
     ) -> FeatureSet:
         table_versions: dict[str, str] = {}
         merged = entity_df.copy()
@@ -373,7 +370,7 @@ class DatabricksFeatureStore(BaseFeatureStore):
         self,
         name: str,
         df: pd.DataFrame,
-        version: Optional[str] = None,
+        version: str | None = None,
         description: str = "",
     ) -> FeatureTableMeta:
         self._ensure_client()
@@ -395,10 +392,10 @@ class DatabricksFeatureStore(BaseFeatureStore):
     def get_features(
         self,
         table_name: str,
-        entity_keys: Optional[list[str]] = None,
-        timestamp_col: Optional[str] = None,
-        as_of: Optional[datetime] = None,
-        version: Optional[str] = None,
+        entity_keys: list[str] | None = None,
+        timestamp_col: str | None = None,
+        as_of: datetime | None = None,
+        version: str | None = None,
     ) -> pd.DataFrame:
         self._ensure_client()
         full_name = f"{self._catalog}.{self._schema}.{table_name}"
@@ -411,7 +408,7 @@ class DatabricksFeatureStore(BaseFeatureStore):
         entity_df: pd.DataFrame,
         feature_tables: list[str],
         entity_key_column: str = "record_id",
-        timestamp_column: Optional[str] = None,
+        timestamp_column: str | None = None,
     ) -> FeatureSet:
         self._ensure_client()
         # In production: FeatureStoreClient.create_training_set()
